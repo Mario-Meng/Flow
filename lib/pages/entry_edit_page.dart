@@ -6,6 +6,13 @@ import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 
+/// 底部面板类型
+enum BottomPanelType {
+  none,   // 无面板
+  mood,   // 心情选择
+  location, // 位置输入
+}
+
 /// 日记编辑页面
 class EntryEditPage extends StatefulWidget {
   final Entry? entry; // 如果为 null，则为新建模式
@@ -27,6 +34,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   Mood? _selectedMood;
   bool _isSaving = false;
+  
+  // 当前显示的底部面板
+  BottomPanelType _activePanel = BottomPanelType.none;
+  // 位置输入焦点
+  final _locationFocusNode = FocusNode();
   
   // 已选择的图片
   List<XFile> _selectedImages = [];
@@ -61,6 +73,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     _contentController.dispose();
     _locationController.dispose();
     _scrollController.dispose();
+    _locationFocusNode.dispose();
     super.dispose();
   }
 
@@ -404,56 +417,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                
+                // 已选择的心情和位置显示
+                if (_selectedMood != null || _locationController.text.isNotEmpty)
+                  _buildSelectedInfoCard(),
 
-                // 心情选择
-                _buildSectionCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '心情',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF8E8E93),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMoodSelector(),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 16),
-
-                // 地点输入
-                _buildSectionCard(
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: Color(0xFF8E8E93),
-                        size: 22,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _locationController,
-                          decoration: const InputDecoration(
-                            hintText: '添加地点',
-                            hintStyle: TextStyle(
-                              color: Color(0xFFC7C7CC),
-                              fontSize: 16,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
 
                 // 提示文字
                 const Padding(
@@ -487,122 +456,454 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
+  /// 切换底部面板
+  void _togglePanel(BottomPanelType panel) {
+    // 先收起键盘
+    FocusScope.of(context).unfocus();
+    
+    // 等待键盘收起后再显示面板
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
+      setState(() {
+        if (_activePanel == panel) {
+          // 如果点击当前激活的面板，则关闭
+          _activePanel = BottomPanelType.none;
+        } else {
+          _activePanel = panel;
+        }
+      });
+    });
+  }
+  
+  /// 关闭底部面板
+  void _closePanel() {
+    setState(() {
+      _activePanel = BottomPanelType.none;
+    });
+  }
+
   /// 构建底部浮动工具栏
   Widget _buildStickyToolbar({
     required double keyboardHeight,
     required double bottomSafeArea,
     required double toolbarHeight,
   }) {
-    final hasKeyboard = keyboardHeight > 0;
+    final hasPanel = _activePanel != BottomPanelType.none;
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      // 键盘弹起时跟随键盘上移
+      // 整个工具栏+面板一起跟随键盘上移
       transform: Matrix4.translationValues(0, -keyboardHeight, 0),
-      child: ClipRect(
-        child: BackdropFilter(
-          // 高斯模糊效果
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              // 半透明背景 + 模糊效果
-              color: const Color(0xFFF2F2F7).withOpacity(0.9),
-              border: const Border(
-                top: BorderSide(
-                  color: Color(0xFFE5E5EA),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              // 键盘弹起时不需要底部安全区
-              bottom: !hasKeyboard,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 工具栏
+          ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                height: toolbarHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // 图片按钮
-                    _buildToolbarButton(
-                      icon: Icons.image_outlined,
-                      label: '图片',
-                      onTap: _showMediaOptions,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7).withOpacity(0.9),
+                  border: const Border(
+                    top: BorderSide(
+                      color: Color(0xFFE5E5EA),
+                      width: 0.5,
                     ),
-                    const SizedBox(width: 8),
-                    // 位置按钮
-                    _buildToolbarButton(
-                      icon: Icons.location_on_outlined,
-                      label: '位置',
-                      onTap: () {
-                        // TODO: 实现位置功能
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    // 心情按钮
-                    _buildToolbarButton(
-                      icon: Icons.mood_outlined,
-                      label: '心情',
-                      onTap: () {
-                        // TODO: 实现心情快捷选择功能
-                      },
-                    ),
-                    const Spacer(),
-                    // 收起键盘按钮（仅在键盘弹起时显示）
-                    if (hasKeyboard)
+                  ),
+                ),
+                child: Container(
+                  height: toolbarHeight,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // 图片按钮
                       _buildToolbarButton(
-                        icon: Icons.keyboard_hide_outlined,
-                        label: '收起',
+                        icon: Icons.image_outlined,
+                        label: '图片',
+                        isActive: false,
+                        hasValue: _hasMedia,
                         onTap: () {
-                          FocusScope.of(context).unfocus();
+                          _closePanel();
+                          _showMediaOptions();
                         },
                       ),
-                  ],
+                      const SizedBox(width: 8),
+                      // 位置按钮（使用 Flexible 防止溢出）
+                      Flexible(
+                        child: _buildToolbarButton(
+                          icon: Icons.location_on_outlined,
+                          label: _locationController.text.isEmpty ? '位置' : _locationController.text,
+                          isActive: _activePanel == BottomPanelType.location,
+                          hasValue: _locationController.text.isNotEmpty,
+                          onTap: () => _togglePanel(BottomPanelType.location),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // 心情按钮
+                      _buildToolbarButton(
+                        icon: _selectedMood != null ? null : Icons.mood_outlined,
+                        emoji: _selectedMood?.emoji,
+                        label: _selectedMood?.displayName ?? '心情',
+                        isActive: _activePanel == BottomPanelType.mood,
+                        hasValue: _selectedMood != null,
+                        onTap: () => _togglePanel(BottomPanelType.mood),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+          // 底部面板（心情/位置选择）
+          if (hasPanel)
+            _buildBottomPanel(bottomSafeArea),
+        ],
       ),
     );
   }
 
   /// 构建工具栏按钮
   Widget _buildToolbarButton({
-    required IconData icon,
+    IconData? icon,
+    String? emoji,
     required String label,
     required VoidCallback onTap,
+    bool isActive = false,
+    bool hasValue = false,
   }) {
+    final color = isActive ? const Color(0xFF007AFF) : 
+                  hasValue ? const Color(0xFF34C759) : 
+                  const Color(0xFF007AFF);
+    
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.6),
+          color: isActive 
+              ? const Color(0xFF007AFF).withOpacity(0.15)
+              : Colors.white.withOpacity(0.6),
           borderRadius: BorderRadius.circular(20),
+          border: isActive 
+              ? Border.all(color: const Color(0xFF007AFF), width: 1.5)
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFF007AFF),
-            ),
+            if (emoji != null)
+              Text(emoji, style: const TextStyle(fontSize: 16))
+            else if (icon != null)
+              Icon(icon, size: 18, color: color),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF007AFF),
-                fontWeight: FontWeight.w500,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 60),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+  
+  /// 构建底部面板
+  Widget _buildBottomPanel(double bottomSafeArea) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: Color(0xFFE5E5EA),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _activePanel == BottomPanelType.mood
+              ? _buildMoodPanel()
+              : _buildLocationPanel(),
+        ),
+      ),
+    );
+  }
+  
+  /// 构建心情选择面板
+  Widget _buildMoodPanel() {
+    return Container(
+      key: const ValueKey('mood_panel'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '选择心情',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1C1C1E),
+                ),
+              ),
+              if (_selectedMood != null)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMood = null;
+                    });
+                  },
+                  child: const Text(
+                    '清除',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF007AFF),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: Mood.values.map((mood) {
+              final isSelected = _selectedMood == mood;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedMood = mood;
+                  });
+                  // 选择后关闭面板
+                  Future.delayed(const Duration(milliseconds: 150), () {
+                    _closePanel();
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Color(mood.colorValue).withOpacity(0.2)
+                        : const Color(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isSelected ? Color(mood.colorValue) : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(mood.emoji, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 8),
+                      Text(
+                        mood.displayName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected ? Color(mood.colorValue) : const Color(0xFF1C1C1E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 构建位置输入面板
+  Widget _buildLocationPanel() {
+    return Container(
+      key: const ValueKey('location_panel'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '添加位置',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1C1C1E),
+                ),
+              ),
+              if (_locationController.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _locationController.clear();
+                    });
+                  },
+                  child: const Text(
+                    '清除',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF007AFF),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: Color(0xFF8E8E93),
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _locationController,
+                    focusNode: _locationFocusNode,
+                    decoration: const InputDecoration(
+                      hintText: '输入位置名称',
+                      hintStyle: TextStyle(
+                        color: Color(0xFFC7C7CC),
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    style: const TextStyle(fontSize: 16),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                    onSubmitted: (value) {
+                      _closePanel();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              _closePanel();
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                '确定',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 构建已选择信息卡片（显示在内容区域）
+  Widget _buildSelectedInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          if (_selectedMood != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Color(_selectedMood!.colorValue).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_selectedMood!.emoji, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(width: 4),
+                  Text(
+                    _selectedMood!.displayName,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(_selectedMood!.colorValue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_locationController.text.isNotEmpty) const SizedBox(width: 8),
+          ],
+          if (_locationController.text.isNotEmpty)
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Color(0xFF8E8E93),
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        _locationController.text,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1C1C1E),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
