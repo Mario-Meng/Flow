@@ -8,8 +8,9 @@ import '../models/models.dart';
 import '../services/services.dart';
 import 'entry_edit_page.dart';
 import 'entry_view_page.dart';
+import '../l10n/app_localizations.dart';
 
-/// Flow 主页
+/// Flow home page
 class FlowHomePage extends StatefulWidget {
   const FlowHomePage({super.key});
 
@@ -22,9 +23,9 @@ class _FlowHomePageState extends State<FlowHomePage> {
   final _mediaService = MediaService();
   List<Entry> _entries = [];
   bool _isLoading = true;
-  bool _showOnlyFavorites = false; // 是否只显示收藏
+  bool _showOnlyFavorites = false; // Show only favorites
   
-  // 全局唯一的视频控制器
+  // Global unique video controller
   VideoPlayerController? _globalVideoController;
   String? _currentVideoAssetId;
 
@@ -75,7 +76,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载失败: $e')),
+          SnackBar(content: Text('${l10n.loadFailed}: $e')),
         );
       }
     }
@@ -125,17 +126,17 @@ class _FlowHomePageState extends State<FlowHomePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除日记'),
-        content: const Text('确定要删除这条日记吗？'),
+        title: Text(l10n.deleteConfirmTitle),
+        content: Text(l10n.deleteConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -406,7 +407,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    '记录生活的每一刻',
+                    l10n.tagline,
                     style: TextStyle(
                       fontSize: 14,
                       color: Color(0xFF8E8E93),
@@ -423,7 +424,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.article_outlined),
-                    title: const Text('所有内容'),
+                    title: const Text(l10n.allContent),
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -451,7 +452,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                       color: _showOnlyFavorites ? Colors.red : null,
                     ),
                     title: Text(
-                      _showOnlyFavorites ? '所有内容' : '收藏',
+                      _showOnlyFavorites ? l10n.allContent : l10n.favorites,
                       style: TextStyle(
                         color: _showOnlyFavorites ? Colors.red : null,
                       ),
@@ -489,7 +490,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('日历视图'),
+                    title: const Text(l10n.calendarView),
                     onTap: () {
                       Navigator.pop(context);
                       // TODO: 跳转到日历视图
@@ -498,7 +499,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.settings_outlined),
-                    title: const Text('设置'),
+                    title: const Text(l10n.settings),
                     onTap: () {
                       Navigator.pop(context);
                       // TODO: 跳转到设置页面
@@ -506,7 +507,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.info_outline),
-                    title: const Text('关于'),
+                    title: const Text(l10n.about),
                     onTap: () {
                       Navigator.pop(context);
                       // TODO: 显示关于信息
@@ -572,7 +573,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
           ),
           const SizedBox(height: 20),
           const Text(
-            '还没有日记',
+            l10n.emptyStateTitle,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -581,7 +582,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '点击下方按钮开始记录',
+            l10n.emptyStateSubtitle,
             style: TextStyle(
               fontSize: 15,
               color: Color(0xFF8E8E93),
@@ -1031,11 +1032,11 @@ class _FlowCardState extends State<FlowCard> {
     final diff = today.difference(targetDate).inDays;
 
     if (diff == 0) {
-      return '今天';
+      return l10n.today;
     } else if (diff == 1) {
-      return '昨天';
+      return l10n.yesterday;
     } else if (diff == 2) {
-      return '前天';
+      return l10n.dayBeforeYesterday;
     } else if (diff < 7) {
       return DateFormat('EEEE', 'zh_CN').format(date);
     } else if (date.year == now.year) {
