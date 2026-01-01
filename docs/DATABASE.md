@@ -1,175 +1,208 @@
-# 数据库操作文档
+# Database Documentation
 
-本文档记录所有数据库相关的操作和变更历史。
+This document records all database-related operations and change history.
 
-## 数据库基本信息
+## Database Basic Information
 
-- **数据库名称**: `flow.db`
-- **数据库类型**: SQLite (使用 sqflite)
-- **数据库位置**: 应用文档目录 (`getApplicationDocumentsDirectory()`)
-- **当前版本**: 1
-- **服务类**: `lib/services/database_service.dart`
+- **Database Name**: `flow.db`
+- **Database Type**: SQLite (using sqflite)
+- **Database Location**: Application documents directory (`getApplicationDocumentsDirectory()`)
+- **Current Version**: 2
+- **Service Class**: `lib/services/database_service.dart`
 
-## 数据库表结构
+## Database Table Structure
 
-### entries 表（日记条目表）
+### entries Table (Entry Records)
 
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| id | TEXT | PRIMARY KEY | 条目唯一标识 |
-| title | TEXT | NOT NULL | 标题 |
-| content | TEXT | NOT NULL | 内容 |
-| mood | TEXT | | 心情 |
-| latitude | REAL | | 纬度 |
-| longitude | REAL | | 经度 |
-| location_name | TEXT | | 位置名称 |
-| created_at | INTEGER | NOT NULL | 创建时间（时间戳） |
-| updated_at | INTEGER | NOT NULL | 更新时间（时间戳） |
-| is_deleted | INTEGER | DEFAULT 0 | 是否删除（0=未删除，1=已删除） |
+| Field Name | Type | Constraints | Description |
+|------------|------|-------------|-------------|
+| id | TEXT | PRIMARY KEY | Unique entry identifier |
+| title | TEXT | NOT NULL | Title |
+| content | TEXT | NOT NULL | Content (Markdown format) |
+| mood | TEXT | | Mood state |
+| latitude | REAL | | Latitude |
+| longitude | REAL | | Longitude |
+| location_name | TEXT | | Location name |
+| created_at | INTEGER | NOT NULL | Creation timestamp (milliseconds) |
+| updated_at | INTEGER | NOT NULL | Update timestamp (milliseconds) |
+| is_deleted | INTEGER | DEFAULT 0 | Soft delete flag (0=active, 1=deleted) |
+| is_favorite | INTEGER | DEFAULT 0 | Favorite flag (0=not favorite, 1=favorite) |
 
-**索引**:
-- `idx_entries_created_at`: `created_at DESC` - 按创建时间降序索引
-- `idx_entries_is_deleted`: `is_deleted` - 软删除标记索引
+**Indexes**:
+- `idx_entries_created_at`: `created_at DESC` - Creation time descending index
+- `idx_entries_is_deleted`: `is_deleted` - Soft delete flag index
+- `idx_entries_is_favorite`: `is_favorite` - Favorite flag index
 
-### assets 表（资源表）
+### assets Table (Media Assets)
 
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| id | TEXT | PRIMARY KEY | 资源唯一标识 |
-| entry_id | TEXT | NOT NULL | 关联的日记条目ID |
-| type | TEXT | NOT NULL | 资源类型（image/video/audio等） |
-| file_name | TEXT | NOT NULL | 文件名 |
-| mime_type | TEXT | | MIME 类型 |
-| file_size | INTEGER | NOT NULL | 文件大小（字节） |
-| width | INTEGER | | 宽度（图片/视频） |
-| height | INTEGER | | 高度（图片/视频） |
-| duration | INTEGER | | 时长（视频/音频，毫秒） |
-| sort_order | INTEGER | DEFAULT 0 | 排序顺序 |
-| created_at | INTEGER | NOT NULL | 创建时间（时间戳） |
+| Field Name | Type | Constraints | Description |
+|------------|------|-------------|-------------|
+| id | TEXT | PRIMARY KEY | Unique asset identifier |
+| entry_id | TEXT | NOT NULL | Associated entry ID |
+| type | TEXT | NOT NULL | Asset type (image/video/audio) |
+| file_name | TEXT | NOT NULL | File name |
+| mime_type | TEXT | | MIME type |
+| file_size | INTEGER | NOT NULL | File size (bytes) |
+| width | INTEGER | | Width (image/video) |
+| height | INTEGER | | Height (image/video) |
+| duration | INTEGER | | Duration (video/audio, milliseconds) |
+| sort_order | INTEGER | DEFAULT 0 | Sort order |
+| created_at | INTEGER | NOT NULL | Creation timestamp (milliseconds) |
 
-**外键**:
+**Foreign Keys**:
 - `entry_id` → `entries.id` ON DELETE CASCADE
 
-**索引**:
-- `idx_assets_entry_id`: `entry_id` - 关联条目ID索引
+**Indexes**:
+- `idx_assets_entry_id`: `entry_id` - Associated entry ID index
 
-## 数据库操作方法
+## Database Operations
 
-### Entry 操作
+### Entry Operations
 
 #### `insertEntry(Entry entry)`
-- **功能**: 插入或替换日记条目
-- **参数**: `Entry` 对象
-- **冲突处理**: `ConflictAlgorithm.replace`
+- **Function**: Insert or replace an entry
+- **Parameter**: `Entry` object
+- **Conflict Handling**: `ConflictAlgorithm.replace`
 
 #### `updateEntry(Entry entry)`
-- **功能**: 更新日记条目
-- **参数**: `Entry` 对象
-- **更新条件**: `id = entry.id`
+- **Function**: Update an entry
+- **Parameter**: `Entry` object
+- **Update Condition**: `id = entry.id`
 
 #### `deleteEntry(String id)`
-- **功能**: 软删除日记条目
-- **参数**: 条目ID
-- **操作**: 设置 `is_deleted = 1` 和更新 `updated_at`
+- **Function**: Soft delete an entry
+- **Parameter**: Entry ID
+- **Operation**: Set `is_deleted = 1` and update `updated_at`
 
 #### `getEntries()`
-- **功能**: 获取所有未删除的日记条目
-- **返回**: `List<Entry>`
-- **排序**: 按 `created_at DESC`
-- **过滤**: `is_deleted = 0`
-- **关联**: 自动加载关联的 assets
+- **Function**: Get all non-deleted entries
+- **Returns**: `List<Entry>`
+- **Sorting**: By `created_at DESC`
+- **Filtering**: `is_deleted = 0`
+- **Associations**: Automatically loads associated assets
 
 #### `getEntryById(String id)`
-- **功能**: 根据ID获取日记条目
-- **参数**: 条目ID
-- **返回**: `Entry?`
-- **关联**: 自动加载关联的 assets
+- **Function**: Get entry by ID
+- **Parameter**: Entry ID
+- **Returns**: `Entry?`
+- **Associations**: Automatically loads associated assets
 
-### Asset 操作
+#### `toggleFavorite(String id)`
+- **Function**: Toggle favorite status
+- **Parameter**: Entry ID
+- **Operation**: Toggle `is_favorite` between 0 and 1, update `updated_at`
+
+#### `getFavoriteEntries()`
+- **Function**: Get all favorite entries
+- **Returns**: `List<Entry>`
+- **Filtering**: `is_deleted = 0 AND is_favorite = 1`
+- **Sorting**: By `created_at DESC`
+
+### Asset Operations
 
 #### `insertAsset(Asset asset)`
-- **功能**: 插入或替换资源
-- **参数**: `Asset` 对象
-- **冲突处理**: `ConflictAlgorithm.replace`
+- **Function**: Insert or replace an asset
+- **Parameter**: `Asset` object
+- **Conflict Handling**: `ConflictAlgorithm.replace`
 
 #### `insertAssets(List<Asset> assets)`
-- **功能**: 批量插入资源
-- **参数**: `Asset` 对象列表
-- **实现**: 使用 `Batch` 操作
+- **Function**: Batch insert assets
+- **Parameter**: List of `Asset` objects
+- **Implementation**: Uses `Batch` operation
 
 #### `deleteAsset(String id)`
-- **功能**: 删除资源
-- **参数**: 资源ID
-- **操作**: 物理删除
+- **Function**: Delete an asset
+- **Parameter**: Asset ID
+- **Operation**: Physical deletion
 
 #### `deleteAssetsByEntryId(String entryId)`
-- **功能**: 删除日记条目关联的所有资源
-- **参数**: 条目ID
-- **操作**: 物理删除
+- **Function**: Delete all assets associated with an entry
+- **Parameter**: Entry ID
+- **Operation**: Physical deletion
 
 #### `getAssetsByEntryId(String entryId)`
-- **功能**: 获取日记条目关联的所有资源
-- **参数**: 条目ID
-- **返回**: `List<Asset>`
-- **排序**: 按 `sort_order ASC`
+- **Function**: Get all assets associated with an entry
+- **Parameter**: Entry ID
+- **Returns**: `List<Asset>`
+- **Sorting**: By `sort_order ASC`
 
 #### `getAssetFilePath(Asset asset)`
-- **功能**: 获取资源文件的完整路径
-- **返回**: 文件完整路径字符串
+- **Function**: Get full path of asset file
+- **Returns**: Full file path string
 
 #### `getThumbnailPath(Asset asset)`
-- **功能**: 获取缩略图的完整路径
-- **返回**: 缩略图完整路径字符串
+- **Function**: Get full path of thumbnail
+- **Returns**: Full thumbnail path string
 
-## 变更历史
+## Change History
 
-### 版本 1 (初始版本)
-- **日期**: 2024-01-XX
-- **变更内容**:
-  - 创建 `entries` 表
-  - 创建 `assets` 表
-  - 创建相关索引
-  - 实现基础的 CRUD 操作
-- **相关文件**: `lib/services/database_service.dart`
+### Version 2
+- **Date**: 2026-01-02
+- **Change Type**: Table structure change, new feature
+- **Changes**:
+  - Added `is_favorite` field to `entries` table for favorite functionality
+  - Added `idx_entries_is_favorite` index
+  - Implemented `toggleFavorite()` method
+  - Implemented `getFavoriteEntries()` method
+- **Migration Script**:
+  ```sql
+  ALTER TABLE entries ADD COLUMN is_favorite INTEGER DEFAULT 0;
+  CREATE INDEX idx_entries_is_favorite ON entries (is_favorite);
+  ```
+- **Related Files**: 
+  - `lib/services/database_service.dart`
+  - `lib/models/entry.dart`
+- **Test Notes**:
+  - Tested upgrade from version 1 to version 2
+  - Verified existing data preserved
+  - Confirmed favorite feature working correctly
+
+### Version 1 (Initial Version)
+- **Date**: 2026-01-01
+- **Changes**:
+  - Created `entries` table
+  - Created `assets` table
+  - Created related indexes
+  - Implemented basic CRUD operations
+- **Related Files**: `lib/services/database_service.dart`
 
 ---
 
-## 变更记录模板
+## Change Record Template
 
-当进行数据库相关修改时，请按照以下格式记录：
+When making database-related changes, please record them in the following format:
 
 ```markdown
-### 版本 X.X
-- **日期**: YYYY-MM-DD
-- **变更类型**: [表结构变更/字段变更/索引变更/方法变更/性能优化/数据迁移]
-- **变更内容**:
-  - 详细描述变更内容
-  - 变更原因
-  - 影响范围
-- **变更前**:
-  - 变更前的状态描述
-- **变更后**:
-  - 变更后的状态描述
-- **迁移脚本**:
-  - 如有数据迁移，记录迁移逻辑
-- **相关文件**: 
+### Version X.X
+- **Date**: YYYY-MM-DD
+- **Change Type**: [Table structure/Field change/Index change/Method change/Performance optimization/Data migration]
+- **Changes**:
+  - Detailed description of changes
+  - Reason for changes
+  - Impact scope
+- **Before**:
+  - State before changes
+- **After**:
+  - State after changes
+- **Migration Script**:
+  - Migration logic if data migration is needed
+- **Related Files**: 
   - `lib/services/database_service.dart`
-  - 其他相关文件路径
-- **测试说明**:
-  - 测试要点和验证方法
+  - Other related file paths
+- **Test Notes**:
+  - Key testing points and verification methods
 ```
 
-## 注意事项
+## Important Notes
 
-1. **每次数据库操作修改必须更新本文档**
-2. **表结构变更必须记录版本号和迁移逻辑**
-3. **新增字段需要说明默认值和约束**
-4. **删除字段需要说明数据迁移方案**
-5. **索引变更需要说明性能影响**
-6. **数据库版本升级需要在 `_onUpgrade` 方法中实现迁移逻辑**
+1. **Update this document for every database operation change**
+2. **Record version number and migration logic for table structure changes**
+3. **Explain default values and constraints for new fields**
+4. **Document data migration plan when deleting fields**
+5. **Explain performance impact for index changes**
+6. **Implement migration logic in `_onUpgrade` method for database version upgrades**
 
-## 相关资源
+## Related Resources
 
-- [sqflite 文档](https://pub.dev/packages/sqflite)
-- [SQLite 文档](https://www.sqlite.org/docs.html)
-
+- [sqflite Documentation](https://pub.dev/packages/sqflite)
+- [SQLite Documentation](https://www.sqlite.org/docs.html)
