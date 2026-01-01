@@ -43,6 +43,10 @@ dependencies:
   # 工具
   uuid: ^4.5.1
   intl: ^0.20.2
+  
+  # 图片处理
+  image_picker: ^1.1.2
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:

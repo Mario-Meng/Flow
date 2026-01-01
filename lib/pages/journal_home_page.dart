@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -14,6 +15,7 @@ class JournalHomePage extends StatefulWidget {
 
 class _JournalHomePageState extends State<JournalHomePage> {
   final _dbService = DatabaseService();
+  final _imageService = ImageService();
   List<Entry> _entries = [];
   bool _isLoading = true;
 
@@ -140,6 +142,7 @@ class _JournalHomePageState extends State<JournalHomePage> {
                             padding: const EdgeInsets.only(bottom: 16),
                             child: JournalCard(
                               entry: _entries[index],
+                              imageService: _imageService,
                               onTap: () => _openEditPage(_entries[index]),
                               onDelete: () => _deleteEntry(_entries[index]),
                             ),
@@ -232,12 +235,14 @@ class _JournalHomePageState extends State<JournalHomePage> {
 /// 日记卡片组件
 class JournalCard extends StatelessWidget {
   final Entry entry;
+  final ImageService imageService;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
   const JournalCard({
     super.key,
     required this.entry,
+    required this.imageService,
     this.onTap,
     this.onDelete,
   });
@@ -353,15 +358,126 @@ class JournalCard extends StatelessWidget {
     final images = entry.imageAssets;
     if (images.isEmpty) return const SizedBox.shrink();
 
-    // 简单的图片占位符布局
+    final count = images.length;
+    
+    if (count == 1) {
+      // 单图模式
+      return SizedBox(
+        height: 200,
+        width: double.infinity,
+        child: _buildImageTile(images[0]),
+      );
+    } else if (count == 2) {
+      // 双图模式：左右并列
+      return SizedBox(
+        height: 160,
+        child: Row(
+          children: [
+            Expanded(child: _buildImageTile(images[0])),
+            const SizedBox(width: 2),
+            Expanded(child: _buildImageTile(images[1])),
+          ],
+        ),
+      );
+    } else if (count == 3) {
+      // 三图模式：左边大图，右边两小图
+      return SizedBox(
+        height: 180,
+        child: Row(
+          children: [
+            Expanded(flex: 2, child: _buildImageTile(images[0])),
+            const SizedBox(width: 2),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _buildImageTile(images[1])),
+                  const SizedBox(height: 2),
+                  Expanded(child: _buildImageTile(images[2])),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // 四图及以上：2x2 网格，显示数量
+      return SizedBox(
+        height: 180,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _buildImageTile(images[0])),
+                  const SizedBox(height: 2),
+                  Expanded(child: _buildImageTile(images[2])),
+                ],
+              ),
+            ),
+            const SizedBox(width: 2),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _buildImageTile(images[1])),
+                  const SizedBox(height: 2),
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildImageTile(images[3]),
+                        if (count > 4)
+                          Container(
+                            color: Colors.black.withOpacity(0.5),
+                            child: Center(
+                              child: Text(
+                                '+${count - 4}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildImageTile(Asset asset) {
+    return FutureBuilder<String>(
+      future: imageService.getThumbnailPath(asset),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final file = File(snapshot.data!);
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, __, ___) => _buildPlaceholder(),
+          );
+        }
+        return _buildPlaceholder();
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
     return Container(
-      height: 160,
-      color: Color(entry.mood?.colorValue ?? 0xFF87CEEB).withOpacity(0.3),
-      child: Center(
+      color: const Color(0xFFE5E5EA),
+      child: const Center(
         child: Icon(
-          Icons.photo_library_outlined,
-          size: 48,
-          color: Color(entry.mood?.colorValue ?? 0xFF87CEEB),
+          Icons.image_outlined,
+          color: Color(0xFF8E8E93),
+          size: 24,
         ),
       ),
     );
