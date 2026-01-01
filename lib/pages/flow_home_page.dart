@@ -7,15 +7,15 @@ import '../models/models.dart';
 import '../services/services.dart';
 import 'entry_edit_page.dart';
 
-/// 日记主页
-class JournalHomePage extends StatefulWidget {
-  const JournalHomePage({super.key});
+/// Flow 主页
+class FlowHomePage extends StatefulWidget {
+  const FlowHomePage({super.key});
 
   @override
-  State<JournalHomePage> createState() => _JournalHomePageState();
+  State<FlowHomePage> createState() => _FlowHomePageState();
 }
 
-class _JournalHomePageState extends State<JournalHomePage> {
+class _FlowHomePageState extends State<FlowHomePage> {
   final _dbService = DatabaseService();
   final _mediaService = MediaService();
   List<Entry> _entries = [];
@@ -178,7 +178,7 @@ class _JournalHomePageState extends State<JournalHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Journal',
+                          'Flow',
                           style: TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.bold,
@@ -220,7 +220,7 @@ class _JournalHomePageState extends State<JournalHomePage> {
                         (context, index) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: JournalCard(
+                            child: FlowCard(
                               entry: _entries[index],
                               mediaService: _mediaService,
                               currentVideoAssetId: _currentVideoAssetId,
@@ -316,8 +316,8 @@ class _JournalHomePageState extends State<JournalHomePage> {
   }
 }
 
-/// 日记卡片组件
-class JournalCard extends StatefulWidget {
+/// Flow 卡片组件
+class FlowCard extends StatefulWidget {
   final Entry entry;
   final MediaService mediaService;
   final String? currentVideoAssetId;
@@ -327,7 +327,7 @@ class JournalCard extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
-  const JournalCard({
+  const FlowCard({
     super.key,
     required this.entry,
     required this.mediaService,
@@ -340,10 +340,10 @@ class JournalCard extends StatefulWidget {
   });
 
   @override
-  State<JournalCard> createState() => _JournalCardState();
+  State<FlowCard> createState() => _FlowCardState();
 }
 
-class _JournalCardState extends State<JournalCard> {
+class _FlowCardState extends State<FlowCard> {
   @override
   Widget build(BuildContext context) {
     return Container(

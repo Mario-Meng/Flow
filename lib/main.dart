@@ -33,7 +33,7 @@ class FlowApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const JournalHomePage(),
+      home: FlowHomePage(),
     );
   }
 }
