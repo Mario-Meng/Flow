@@ -49,7 +49,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
         }
         _globalVideoController!.dispose();
       } catch (e) {
-        debugPrint('释放视频控制器失败: $e');
+        debugPrint('Failed to dispose video controller: $e');
       }
       _globalVideoController = null;
       _currentVideoAssetId = null;
@@ -171,7 +171,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
         _globalVideoController!.play();
       }
     } catch (e) {
-      debugPrint('切换视频失败: $e');
+      debugPrint('Failed to switch video: $e');
       _disposeGlobalVideoController();
     }
   }
@@ -183,7 +183,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
       try {
         _globalVideoController!.pause();
       } catch (e) {
-        debugPrint('暂停视频失败: $e');
+        debugPrint('Failed to pause video: $e');
       }
     }
   }
@@ -1120,7 +1120,7 @@ class _VideoTileState extends State<VideoTile> {
     try {
       _videoPath = await widget.mediaService.getOriginalPath(widget.asset);
     } catch (e) {
-      debugPrint('获取视频路径失败: $e');
+      debugPrint('Failed to get video path: $e');
     }
   }
 
@@ -1277,7 +1277,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         _controller.play();
       }
     } catch (e) {
-      debugPrint('全屏视频初始化失败: $e');
+      debugPrint('Failed to initialize fullscreen video: $e');
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
