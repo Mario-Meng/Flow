@@ -36,6 +36,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
   List<Asset> _existingAssets = [];
 
   bool get isEditing => widget.entry != null;
+  
+  /// 是否有媒体资源（已有的或新选择的）
+  bool get _hasMedia => 
+      _existingAssets.isNotEmpty || 
+      _selectedImages.isNotEmpty || 
+      _selectedVideos.isNotEmpty;
 
   @override
   void initState() {
@@ -339,9 +345,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 bottom: toolbarHeight + bottomSafeArea + 16 + keyboardHeight,
               ),
               children: [
-                // 媒体区域
-                _buildMediaSection(),
-                const SizedBox(height: 16),
+                // 媒体区域（仅在有媒体时显示）
+                if (_hasMedia) ...[
+                  _buildMediaSection(),
+                  const SizedBox(height: 16),
+                ],
                 
                 // 标题输入
                 _buildSectionCard(
@@ -599,109 +607,32 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 媒体区域
+  /// 媒体区域（仅在有媒体时显示）
   Widget _buildMediaSection() {
-    final hasMedia = _existingAssets.isNotEmpty || 
-                     _selectedImages.isNotEmpty || 
-                     _selectedVideos.isNotEmpty;
-    
-    return _buildSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 100,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '图片/视频',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF8E8E93),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              GestureDetector(
-                onTap: _showMediaOptions,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF007AFF).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate_outlined,
-                        size: 18,
-                        color: Color(0xFF007AFF),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '添加',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF007AFF),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (hasMedia) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  // 已有的媒体资源
-                  ..._existingAssets.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final asset = entry.value;
-                    return _buildExistingAssetTile(asset, index);
-                  }),
-                  // 新选择的图片
-                  ..._selectedImages.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final xFile = entry.value;
-                    return _buildSelectedImageTile(xFile, index);
-                  }),
-                  // 新选择的视频
-                  ..._selectedVideos.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final xFile = entry.value;
-                    return _buildSelectedVideoTile(xFile, index);
-                  }),
-                ],
-              ),
-            ),
-          ] else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.perm_media_outlined,
-                      size: 40,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '点击上方添加图片或视频',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[400],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          // 已有的媒体资源
+          ..._existingAssets.asMap().entries.map((entry) {
+            final index = entry.key;
+            final asset = entry.value;
+            return _buildExistingAssetTile(asset, index);
+          }),
+          // 新选择的图片
+          ..._selectedImages.asMap().entries.map((entry) {
+            final index = entry.key;
+            final xFile = entry.value;
+            return _buildSelectedImageTile(xFile, index);
+          }),
+          // 新选择的视频
+          ..._selectedVideos.asMap().entries.map((entry) {
+            final index = entry.key;
+            final xFile = entry.value;
+            return _buildSelectedVideoTile(xFile, index);
+          }),
         ],
       ),
     );
