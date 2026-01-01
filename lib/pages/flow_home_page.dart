@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -20,6 +21,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   final _mediaService = MediaService();
   List<Entry> _entries = [];
   bool _isLoading = true;
+  bool _showOnlyFavorites = false; // 是否只显示收藏
   
   // 全局唯一的视频控制器
   VideoPlayerController? _globalVideoController;
@@ -59,7 +61,9 @@ class _FlowHomePageState extends State<FlowHomePage> {
     _disposeGlobalVideoController();
     
     try {
-      final entries = await _dbService.getEntries();
+      final entries = _showOnlyFavorites 
+          ? await _dbService.getFavoriteEntries()
+          : await _dbService.getEntries();
       if (mounted) {
         setState(() {
           _entries = entries;
@@ -74,6 +78,20 @@ class _FlowHomePageState extends State<FlowHomePage> {
         );
       }
     }
+  }
+
+  /// 切换收藏状态
+  Future<void> _toggleFavorite(Entry entry) async {
+    await _dbService.toggleFavorite(entry.id);
+    _loadEntries();
+  }
+
+  /// 显示/隐藏收藏列表
+  void _toggleFavoriteView() {
+    setState(() {
+      _showOnlyFavorites = !_showOnlyFavorites;
+    });
+    _loadEntries();
   }
 
   Future<void> _openEditPage([Entry? entry]) async {
@@ -165,6 +183,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
+      drawer: _buildDrawer(),
       body: SafeArea(
         child: Stack(
           children: [
@@ -177,14 +196,37 @@ class _FlowHomePageState extends State<FlowHomePage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Flow',
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: -0.5,
-                          ),
+                        Row(
+                          children: [
+                            // 菜单图标
+                            Builder(
+                              builder: (context) => GestureDetector(
+                                onTap: () {
+                                  Scaffold.of(context).openDrawer();
+                                },
+                                child: Container(
+                                width: 32,
+                                height: 32,
+                                margin: const EdgeInsets.only(right: 0),
+                                
+                                child: const Icon(
+                                  Icons.menu_rounded,
+                                  size: 20,
+                                  color: Color(0xFF8E8E93),
+                                ),
+                              ),
+                            ),
+                            ),
+                            const Text(
+                              'Flow',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
                         ),
                         Container(
                           width: 32,
@@ -220,15 +262,49 @@ class _FlowHomePageState extends State<FlowHomePage> {
                         (context, index) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: FlowCard(
-                              entry: _entries[index],
-                              mediaService: _mediaService,
-                              currentVideoAssetId: _currentVideoAssetId,
-                              getVideoController: _getVideoController,
-                              onVideoVisibilityChanged: _switchVideo,
-                              onVideoVisibilityLost: _pauseCurrentVideo,
-                              onTap: () => _openEditPage(_entries[index]),
-                              onDelete: () => _deleteEntry(_entries[index]),
+                            child: Slidable(
+                              key: ValueKey(_entries[index].id),
+                              endActionPane: ActionPane(
+                                motion: const StretchMotion(),
+                                extentRatio: 0.25,
+                                children: [
+                                  CustomSlidableAction(
+                                    onPressed: (_) => _toggleFavorite(_entries[index]),
+                                    backgroundColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        _buildCircleActionButton(
+                                          icon: _entries[index].isFavorite 
+                                              ? Icons.star_rounded 
+                                              : Icons.star_border_rounded,
+                                          color: const Color(0xFFFFCC00),
+                                        ),
+                                        _buildCircleActionButton(
+                                          icon: Icons.edit_rounded,
+                                          color: const Color(0xFF007AFF),
+                                          onTap: () => _openEditPage(_entries[index]),
+                                        ),
+                                        _buildCircleActionButton(
+                                          icon: Icons.delete_rounded,
+                                          color: const Color(0xFFFF3B30),
+                                          onTap: () => _deleteEntry(_entries[index]),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              child: FlowCard(
+                                entry: _entries[index],
+                                mediaService: _mediaService,
+                                currentVideoAssetId: _currentVideoAssetId,
+                                getVideoController: _getVideoController,
+                                onVideoVisibilityChanged: _switchVideo,
+                                onVideoVisibilityLost: _pauseCurrentVideo,
+                                onTap: () => _openEditPage(_entries[index]),
+                              ),
                             ),
                           );
                         },
@@ -270,6 +346,189 @@ class _FlowHomePageState extends State<FlowHomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建侧边栏
+  Widget _buildDrawer() {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 头部
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF007AFF),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.layers_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Flow',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '记录生活的每一刻',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8E8E93),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // 菜单项
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.article_outlined),
+                    title: const Text('所有内容'),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_entries.length}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      _showOnlyFavorites 
+                          ? Icons.favorite 
+                          : Icons.favorite_outline,
+                      color: _showOnlyFavorites ? Colors.red : null,
+                    ),
+                    title: Text(
+                      _showOnlyFavorites ? '所有内容' : '收藏',
+                      style: TextStyle(
+                        color: _showOnlyFavorites ? Colors.red : null,
+                      ),
+                    ),
+                    trailing: _showOnlyFavorites
+                        ? null
+                        : FutureBuilder<List<Entry>>(
+                            future: _dbService.getFavoriteEntries(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) return const SizedBox();
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${snapshot.data!.length}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _toggleFavoriteView();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.calendar_today_outlined),
+                    title: const Text('日历视图'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // TODO: 跳转到日历视图
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('设置'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // TODO: 跳转到设置页面
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('关于'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // TODO: 显示关于信息
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建圆形操作按钮
+  Widget _buildCircleActionButton({
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 24,
         ),
       ),
     );
@@ -325,7 +584,6 @@ class FlowCard extends StatefulWidget {
   final Function(String assetId, String videoPath) onVideoVisibilityChanged;
   final VoidCallback onVideoVisibilityLost;
   final VoidCallback? onTap;
-  final VoidCallback? onDelete;
 
   const FlowCard({
     super.key,
@@ -336,7 +594,6 @@ class FlowCard extends StatefulWidget {
     required this.onVideoVisibilityChanged,
     required this.onVideoVisibilityLost,
     this.onTap,
-    this.onDelete,
   });
 
   @override
@@ -749,13 +1006,17 @@ class _FlowCardState extends State<FlowCard> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final diff = now.difference(date);
+    
+    // 将日期归零到当天0点，只比较日期不比较时间
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(targetDate).inDays;
 
-    if (diff.inDays == 0) {
+    if (diff == 0) {
       return '今天';
-    } else if (diff.inDays == 1) {
+    } else if (diff == 1) {
       return '昨天';
-    } else if (diff.inDays < 7) {
+    } else if (diff < 7) {
       return DateFormat('EEEE', 'zh_CN').format(date);
     } else {
       return DateFormat('M月d日, yyyy').format(date);
@@ -787,14 +1048,6 @@ class _FlowCardState extends State<FlowCard> {
               onTap: () {
                 Navigator.of(context).pop();
                 widget.onTap?.call();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('删除', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.of(context).pop();
-                widget.onDelete?.call();
               },
             ),
             const SizedBox(height: 8),

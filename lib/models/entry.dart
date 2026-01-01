@@ -13,6 +13,7 @@ class Entry {
   final int createdAt;        // 创建时间戳（毫秒）
   final int updatedAt;        // 更新时间戳（毫秒）
   final bool isDeleted;       // 是否已删除
+  final bool isFavorite;      // 是否收藏
 
   // 关联的资源列表（非数据库字段）
   final List<Asset> assets;
@@ -28,6 +29,7 @@ class Entry {
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
+    this.isFavorite = false,
     this.assets = const [],
   });
 
@@ -44,6 +46,7 @@ class Entry {
       createdAt: map['created_at'] as int,
       updatedAt: map['updated_at'] as int,
       isDeleted: (map['is_deleted'] as int?) == 1,
+      isFavorite: (map['is_favorite'] as int?) == 1,
       assets: assets ?? [],
     );
   }
@@ -61,6 +64,7 @@ class Entry {
       'created_at': createdAt,
       'updated_at': updatedAt,
       'is_deleted': isDeleted ? 1 : 0,
+      'is_favorite': isFavorite ? 1 : 0,
     };
   }
 
@@ -110,6 +114,7 @@ class Entry {
     int? createdAt,
     int? updatedAt,
     bool? isDeleted,
+    bool? isFavorite,
     List<Asset>? assets,
   }) {
     return Entry(
@@ -123,6 +128,7 @@ class Entry {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
+      isFavorite: isFavorite ?? this.isFavorite,
       assets: assets ?? this.assets,
     );
   }

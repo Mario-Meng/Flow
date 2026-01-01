@@ -38,7 +38,7 @@ class DatabaseService {
 
     return await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -75,7 +75,8 @@ class DatabaseService {
         location_name TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+        is_favorite INTEGER DEFAULT 0
       )
     ''');
 
@@ -105,13 +106,20 @@ class DatabaseService {
       CREATE INDEX idx_entries_is_deleted ON entries (is_deleted)
     ''');
     await db.execute('''
+      CREATE INDEX idx_entries_is_favorite ON entries (is_favorite)
+    ''');
+    await db.execute('''
       CREATE INDEX idx_assets_entry_id ON assets (entry_id)
     ''');
   }
 
   /// 数据库升级
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // 未来版本升级逻辑
+    // 版本 1 -> 2: 添加收藏功能
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE entries ADD COLUMN is_favorite INTEGER DEFAULT 0');
+      await db.execute('CREATE INDEX idx_entries_is_favorite ON entries (is_favorite)');
+    }
   }
 
   // ============ Entry 操作 ============
@@ -179,6 +187,40 @@ class DatabaseService {
 
     final assets = await getAssetsByEntryId(id);
     return Entry.fromMap(maps.first, assets: assets);
+  }
+
+  /// 切换收藏状态
+  Future<void> toggleFavorite(String id) async {
+    final db = await database;
+    final entry = await getEntryById(id);
+    if (entry == null) return;
+    
+    await db.update(
+      'entries',
+      {
+        'is_favorite': entry.isFavorite ? 0 : 1,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// 获取所有收藏的日记条目
+  Future<List<Entry>> getFavoriteEntries() async {
+    final db = await database;
+    final maps = await db.query(
+      'entries',
+      where: 'is_deleted = 0 AND is_favorite = 1',
+      orderBy: 'created_at DESC',
+    );
+
+    final entries = <Entry>[];
+    for (final map in maps) {
+      final assets = await getAssetsByEntryId(map['id'] as String);
+      entries.add(Entry.fromMap(map, assets: assets));
+    }
+    return entries;
   }
 
   // ============ Asset 操作 ============
