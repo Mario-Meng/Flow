@@ -1,12 +1,12 @@
-# Cursor Rules - Flutter 项目代码提交规范
+# Cursor Rules - Flutter Project Code Commit Specifications
 
-## 代码提交规范
+## Code Commit Specifications
 
+**IMPORTANT: All commit messages must be written in English.**
 
+### Commit Message Format
 
-### 提交信息格式规范
-
-使用约定式提交（Conventional Commits）格式：
+Use Conventional Commits format:
 
 ```
 <type>(<scope>): <subject>
@@ -16,284 +16,284 @@
 <footer>
 ```
 
-#### Type 类型（必填）
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `docs`: 文档更新
-- `style`: 代码格式调整（不影响代码运行）
-- `refactor`: 代码重构
-- `perf`: 性能优化
-- `test`: 测试相关
-- `chore`: 构建过程或辅助工具的变动
-- `ci`: CI 配置文件和脚本的变更
+#### Type (Required)
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `style`: Code formatting (doesn't affect code execution)
+- `refactor`: Code refactoring
+- `perf`: Performance optimization
+- `test`: Testing related
+- `chore`: Build process or auxiliary tool changes
+- `ci`: CI configuration file and script changes
 
-#### Scope 范围（可选）
-- `ui`: 用户界面相关
-- `api`: API 相关
-- `auth`: 认证相关
-- `db`: 数据库相关
-- `config`: 配置相关
-- `deps`: 依赖更新
+#### Scope (Optional)
+- `ui`: User interface related
+- `api`: API related
+- `auth`: Authentication related
+- `db`: Database related
+- `config`: Configuration related
+- `deps`: Dependency updates
 
-#### Subject 主题（必填）
-- 使用中文或英文描述
-- 首字母小写
-- 结尾不加句号
-- 简洁明了，不超过 50 个字符
+#### Subject (Required)
+- Use English description
+- Start with lowercase
+- No period at the end
+- Concise and clear, no more than 50 characters
 
-#### Body 正文（可选）
-- 详细描述修改内容
-- 说明修改的原因和方式
-- 可以多行
+#### Body (Optional)
+- Detailed description of changes
+- Explain the reason and approach
+- Can be multiple lines
 
-#### Footer 脚注（可选）
-- 关闭的 issue：`Closes #123`
-- 破坏性变更：`BREAKING CHANGE: 描述变更内容`
+#### Footer (Optional)
+- Close issues: `Closes #123`
+- Breaking changes: `BREAKING CHANGE: description`
 
-### 提交信息示例
+### Commit Message Examples
 
 ```
-feat(ui): 添加用户登录页面
+feat(ui): add user login page
 
-实现了用户登录界面，包括用户名和密码输入框，以及登录按钮。
-添加了表单验证逻辑。
+Implemented user login interface including username and password input fields and login button.
+Added form validation logic.
 
 Closes #45
 ```
 
 ```
-fix(api): 修复网络请求超时问题
+fix(api): fix network request timeout issue
 
-将默认超时时间从 5 秒增加到 10 秒，解决网络较慢时的请求失败问题。
+Increased default timeout from 5 seconds to 10 seconds to resolve request failures on slow networks.
 ```
 
 ```
-refactor: 重构状态管理代码
+refactor: refactor state management code
 
-将状态管理从 Provider 迁移到 Riverpod，提升代码可维护性。
+Migrated state management from Provider to Riverpod to improve code maintainability.
 ```
 
-### 自动化提交流程
+### Automated Commit Workflow
 
-在完成代码修改和测试后，按照以下步骤提交：
+After completing code modifications and testing, follow these steps to commit:
 
-1. 检查代码状态：`git status`
-2. 添加修改的文件：`git add .`
-3. 提交代码（使用规范的提交信息格式）
-4. 推送到远程仓库：`git push`
+1. Check code status: `git status`
+2. Add modified files: `git add .`
+3. Commit code (using standard commit message format)
+4. Push to remote repository: `git push`
 
-### 数据库操作文档规范
+### Database Operation Documentation Standards
 
-**重要：所有数据库操作修改必须同步更新数据库操作文档**
+**IMPORTANT: All database operation changes must synchronously update database operation documentation**
 
-#### 数据库操作文档要求
+#### Database Documentation Requirements
 
-1. **文档位置**
-   - 数据库操作文档位于：`docs/DATABASE.md`
-   - 每次修改数据库相关代码时，必须同步更新此文档
+1. **Documentation Location**
+   - Database documentation is located at: `docs/DATABASE.md`
+   - Must synchronously update this document when modifying database-related code
 
-2. **需要记录的内容**
-   - **表结构变更**：新增表、修改表结构、删除表
-   - **字段变更**：新增字段、修改字段类型、删除字段、字段约束变更
-   - **索引变更**：新增索引、删除索引、索引优化
-   - **数据库版本升级**：版本号变更、升级脚本、迁移逻辑
-   - **CRUD 操作变更**：新增、修改、删除数据库操作方法
-   - **查询优化**：SQL 查询优化、性能改进
-   - **数据迁移**：数据格式变更、数据清理脚本
+2. **Content to Record**
+   - **Table Structure Changes**: New tables, table structure modifications, table deletions
+   - **Field Changes**: New fields, field type modifications, field deletions, field constraint changes
+   - **Index Changes**: New indexes, index deletions, index optimizations
+   - **Database Version Upgrades**: Version number changes, upgrade scripts, migration logic
+   - **CRUD Operation Changes**: Add, modify, delete database operation methods
+   - **Query Optimizations**: SQL query optimizations, performance improvements
+   - **Data Migrations**: Data format changes, data cleanup scripts
 
-3. **文档更新时机**
-   - 在代码修改完成后立即更新文档
-   - 在提交代码前必须确保文档已更新
-   - 文档更新应该与代码修改在同一提交中
+3. **Documentation Update Timing**
+   - Update documentation immediately after code modifications
+   - Ensure documentation is updated before committing code
+   - Documentation updates should be in the same commit as code modifications
 
-4. **文档格式要求**
-   - 使用 Markdown 格式
-   - 记录变更日期和版本号
-   - 详细说明变更原因和影响范围
-   - 提供变更前后的对比（如适用）
-   - 记录相关的代码文件路径
+4. **Documentation Format Requirements**
+   - Use Markdown format
+   - Record change date and version number
+   - Explain reasons and impact scope in detail
+   - Provide before/after comparisons (if applicable)
+   - Record related code file paths
 
-5. **提交规范**
-   - 数据库相关提交的 scope 应使用 `db`
-   - 提交信息应包含文档更新说明
-   - 示例：`feat(db): 添加用户表并更新数据库文档`
+5. **Commit Standards**
+   - Database-related commits should use `db` scope
+   - Commit messages should include documentation update notes
+   - Example: `feat(db): add user table and update database documentation`
 
-### 数据库迁移规范
+### Database Migration Standards
 
-**重要：所有数据库表结构变更必须实现迁移逻辑，确保老用户升级时数据不丢失**
+**IMPORTANT: All database table structure changes must implement migration logic to ensure data is not lost when old users upgrade**
 
-#### 迁移实现要求
+#### Migration Implementation Requirements
 
-1. **版本号管理**
-   - 每次表结构变更必须增加数据库版本号
-   - 版本号只能递增，不能降低
-   - 当前版本号记录在 `openDatabase()` 的 `version` 参数中
+1. **Version Number Management**
+   - Database version number must be incremented for each table structure change
+   - Version numbers can only increase, not decrease
+   - Current version number is recorded in the `version` parameter of `openDatabase()`
 
-2. **迁移代码位置**
-   - 迁移逻辑必须在 `_onUpgrade()` 方法中实现
-   - 文件路径：`lib/services/database_service.dart`
+2. **Migration Code Location**
+   - Migration logic must be implemented in the `_onUpgrade()` method
+   - File path: `lib/services/database_service.dart`
 
-3. **迁移代码规范**
+3. **Migration Code Standards**
    ```dart
    Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-     // 使用 if (oldVersion < X) 逐版本升级，确保跨版本兼容
+     // Use if (oldVersion < X) for step-by-step upgrades to ensure cross-version compatibility
      if (oldVersion < 2) {
-       // 版本 1 -> 2 的迁移逻辑
+       // Version 1 -> 2 migration logic
        await db.execute('ALTER TABLE entries ADD COLUMN weather TEXT');
      }
      if (oldVersion < 3) {
-       // 版本 2 -> 3 的迁移逻辑
+       // Version 2 -> 3 migration logic
        await db.execute('CREATE TABLE tags (...)');
      }
    }
    ```
 
-4. **常见迁移场景**
-   | 场景 | SQL 语句 |
-   |------|---------|
-   | 添加字段 | `ALTER TABLE table ADD COLUMN field TYPE` |
-   | 添加字段（带默认值） | `ALTER TABLE table ADD COLUMN field TYPE DEFAULT value` |
-   | 创建新表 | `CREATE TABLE table (...)` |
-   | 创建索引 | `CREATE INDEX idx_name ON table (column)` |
-   | 删除表 | `DROP TABLE IF EXISTS table` |
+4. **Common Migration Scenarios**
+   | Scenario | SQL Statement |
+   |----------|---------------|
+   | Add field | `ALTER TABLE table ADD COLUMN field TYPE` |
+   | Add field with default | `ALTER TABLE table ADD COLUMN field TYPE DEFAULT value` |
+   | Create new table | `CREATE TABLE table (...)` |
+   | Create index | `CREATE INDEX idx_name ON table (column)` |
+   | Drop table | `DROP TABLE IF EXISTS table` |
 
-5. **SQLite 限制处理**
-   - SQLite 不支持直接删除列、修改列类型
-   - 需要通过"重建表"方式处理：
-     1. 创建新表（新结构）
-     2. 复制数据到新表
-     3. 删除旧表
-     4. 重命名新表
-     5. 重建索引
+5. **SQLite Limitations**
+   - SQLite doesn't support directly deleting columns or modifying column types
+   - Need to use "rebuild table" approach:
+     1. Create new table (new structure)
+     2. Copy data to new table
+     3. Delete old table
+     4. Rename new table
+     5. Rebuild indexes
 
-6. **同步更新要求**
-   - `_onCreate()` 方法必须包含完整的最新表结构（新安装用户使用）
-   - `_onUpgrade()` 方法必须包含从任意旧版本升级的逻辑
-   - `docs/DATABASE.md` 必须记录版本变更和迁移说明
+6. **Synchronous Update Requirements**
+   - `_onCreate()` method must contain complete latest table structure (for new installations)
+   - `_onUpgrade()` method must contain upgrade logic from any old version
+   - `docs/DATABASE.md` must record version changes and migration notes
 
-#### 迁移检查清单
+#### Migration Checklist
 
-在提交数据库变更前，请确认：
+Before committing database changes, confirm:
 
-- [ ] 数据库版本号已递增
-- [ ] `_onCreate()` 包含完整的新表结构
-- [ ] `_onUpgrade()` 包含迁移逻辑
-- [ ] 迁移逻辑使用 `if (oldVersion < X)` 格式
-- [ ] 已在真机/模拟器上测试升级流程
-- [ ] `docs/DATABASE.md` 已更新版本变更记录
+- [ ] Database version number has been incremented
+- [ ] `_onCreate()` contains complete new table structure
+- [ ] `_onUpgrade()` contains migration logic
+- [ ] Migration logic uses `if (oldVersion < X)` format
+- [ ] Upgrade process tested on real device/simulator
+- [ ] `docs/DATABASE.md` has been updated with version changes
 
-### 密钥与敏感信息管理规范
+### API Key and Sensitive Information Management Standards
 
-**重要：所有 API Key、密钥、密码等敏感信息必须使用配置文件管理，不得硬编码到代码中**
+**IMPORTANT: All API Keys, secrets, passwords, and other sensitive information must be managed using configuration files, not hardcoded in code**
 
-#### 配置文件管理要求
+#### Configuration File Management Requirements
 
-1. **配置文件结构**
-   - 实际配置文件：`lib/config.dart`（不提交到 Git）
-   - 示例模板文件：`lib/config.example.dart`（提交到 Git）
-   - 配置说明文档：`CONFIG_SETUP.md`（提交到 Git）
+1. **Configuration File Structure**
+   - Actual configuration file: `lib/config.dart` (not committed to Git)
+   - Example template file: `lib/config.example.dart` (committed to Git)
+   - Configuration documentation: `CONFIG_SETUP.md` (committed to Git)
 
-2. **配置文件格式**
+2. **Configuration File Format**
    ```dart
-   /// 应用配置
-   /// 注意：此文件包含敏感信息，不应提交到版本控制
+   /// Application Configuration
+   /// Note: This file contains sensitive information and should not be committed to version control
    class AppConfig {
      // API Keys
      static const String amapApiKey = 'YOUR_API_KEY';
      
-     // 数据库配置
+     // Database Configuration
      static const String dbEncryptionKey = 'YOUR_KEY';
      
-     // 其他敏感配置...
+     // Other sensitive configurations...
    }
    ```
 
-3. **示例模板格式**
+3. **Example Template Format**
    ```dart
-   /// 应用配置示例文件
-   /// 使用方法：
-   /// 1. 复制此文件为 config.dart
-   /// 2. 在 config.dart 中填入你的实际密钥
-   /// 3. config.dart 不会被提交到 Git
+   /// Application Configuration Example File
+   /// Usage:
+   /// 1. Copy this file as config.dart
+   /// 2. Fill in your actual keys in config.dart
+   /// 3. config.dart will not be committed to Git
    class AppConfig {
-     // 高德地图 API Key
-     // 获取地址: https://lbs.amap.com/
+     // Amap API Key
+     // Get it at: https://lbs.amap.com/
      static const String amapApiKey = 'YOUR_AMAP_API_KEY_HERE';
      
-     // 其他配置...
+     // Other configurations...
    }
    ```
 
-4. **使用配置的方式**
+4. **Using Configuration**
    ```dart
    import '../config.dart';
    
    class SomeService {
      static const String _apiKey = AppConfig.amapApiKey;
-     // 使用配置中的密钥
+     // Use the key from configuration
    }
    ```
 
-5. **.gitignore 配置**
-   - 必须将 `lib/config.dart` 添加到 `.gitignore`
-   - 确保敏感信息不会被提交到版本控制
+5. **.gitignore Configuration**
+   - Must add `lib/config.dart` to `.gitignore`
+   - Ensure sensitive information is not committed to version control
    ```gitignore
-   # 配置文件（包含敏感信息，不提交）
+   # Configuration file (contains sensitive information, do not commit)
    lib/config.dart
    ```
 
-6. **新增密钥时的步骤**
-   - 在 `lib/config.dart` 中添加实际密钥
-   - 在 `lib/config.example.dart` 中添加占位符
-   - 在 `CONFIG_SETUP.md` 中更新说明文档
-   - 在代码中使用 `AppConfig.xxxKey` 引用
+6. **Steps When Adding New Keys**
+   - Add actual key in `lib/config.dart`
+   - Add placeholder in `lib/config.example.dart`
+   - Update documentation in `CONFIG_SETUP.md`
+   - Reference using `AppConfig.xxxKey` in code
 
-7. **禁止的做法**
-   ❌ 硬编码 API Key 到代码中
+7. **Prohibited Practices**
+   ❌ Hardcode API Keys in code
    ```dart
-   // 错误示例
+   // Wrong example
    static const String _apiKey = '498fb9da60888b1533cdcaf8f7d9c13d';
    ```
    
-   ✅ 从配置文件读取
+   ✅ Read from configuration file
    ```dart
-   // 正确示例
+   // Correct example
    import '../config.dart';
    static const String _apiKey = AppConfig.amapApiKey;
    ```
 
-8. **开发环境设置**
-   - 新成员克隆项目后，需要复制并配置：
+8. **Development Environment Setup**
+   - After cloning the project, team members need to copy and configure:
      ```bash
      cp lib/config.example.dart lib/config.dart
-     # 然后编辑 config.dart 填入实际密钥
+     # Then edit config.dart and fill in actual keys
      ```
 
-9. **CI/CD 配置**
-   - 在 CI/CD 环境中，需要通过环境变量或密钥管理服务注入配置
-   - 不要在 CI 配置文件中明文写入密钥
+9. **CI/CD Configuration**
+   - In CI/CD environment, need to inject configuration through environment variables or secret management services
+   - Do not write keys in plaintext in CI configuration files
 
-#### 密钥安全检查清单
+#### Security Checklist
 
-在提交代码前，请确认：
+Before committing code, confirm:
 
-- [ ] 所有 API Key 和密钥都已移至 `config.dart`
-- [ ] `config.dart` 已添加到 `.gitignore`
-- [ ] `config.example.dart` 已更新（使用占位符）
-- [ ] `CONFIG_SETUP.md` 已更新说明
-- [ ] 代码中没有硬编码的敏感信息
-- [ ] Git 历史中没有泄露敏感信息（如有需要 `git filter-branch`）
+- [ ] All API Keys and secrets have been moved to `config.dart`
+- [ ] `config.dart` has been added to `.gitignore`
+- [ ] `config.example.dart` has been updated (using placeholders)
+- [ ] `CONFIG_SETUP.md` has been updated with instructions
+- [ ] No hardcoded sensitive information in code
+- [ ] No leaked sensitive information in Git history (use `git filter-branch` if needed)
 
-### 注意事项
+### Notes
 
-- 每次提交应该是一个完整的功能或修复
-- 避免提交未完成的代码
-- 提交前确保代码可以正常运行
-- 保持提交历史的清晰和有意义
-- **不要提交敏感信息（API keys、密码等），必须使用配置文件管理**
-- 不要提交构建产物（build/、.dart_tool/ 等）
-- **数据库操作修改必须同步更新数据库操作文档**
-- **数据库表结构变更必须实现迁移逻辑**
-- **所有密钥必须通过配置文件管理，不得硬编码**
+- Each commit should be a complete feature or fix
+- Avoid committing unfinished code
+- Ensure code runs properly before committing
+- Keep commit history clear and meaningful
+- **Do not commit sensitive information (API keys, passwords, etc.), must use configuration files**
+- Do not commit build artifacts (build/, .dart_tool/, etc.)
+- **Database operation changes must synchronously update database documentation**
+- **Database table structure changes must implement migration logic**
+- **All keys must be managed through configuration files, not hardcoded**
 
 
