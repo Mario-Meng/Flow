@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 配置文件（包含敏感信息，不提交）
+lib/config.dart

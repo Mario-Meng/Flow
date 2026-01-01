@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 
@@ -39,6 +41,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
   BottomPanelType _activePanel = BottomPanelType.none;
   // 位置输入焦点
   final _locationFocusNode = FocusNode();
+  
+  // 位置相关状态
+  bool _isLoadingLocation = false;
+  List<BusinessArea> _nearbyPlaces = [];
+  bool _hasLocationPermission = false;
   
   // 已选择的图片
   List<XFile> _selectedImages = [];
@@ -456,6 +463,90 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
+  /// 请求位置权限并获取附近地点
+  Future<void> _fetchNearbyLocations() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+
+    try {
+      // 检查位置服务是否启用
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('请先打开位置服务')),
+          );
+        }
+        setState(() {
+          _isLoadingLocation = false;
+          _hasLocationPermission = false;
+        });
+        return;
+      }
+
+      // 检查位置权限
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _isLoadingLocation = false;
+            _hasLocationPermission = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('位置权限被永久拒绝，请在设置中允许'),
+              action: SnackBarAction(
+                label: '打开设置',
+                onPressed: openAppSettings,
+              ),
+            ),
+          );
+        }
+        setState(() {
+          _isLoadingLocation = false;
+          _hasLocationPermission = false;
+        });
+        return;
+      }
+
+      // 获取当前位置
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 调用高德API获取附近地点
+      final places = await AmapService.getNearbyBusinessAreas(
+        position.latitude,
+        position.longitude,
+      );
+
+      setState(() {
+        _nearbyPlaces = places;
+        _hasLocationPermission = true;
+        _isLoadingLocation = false;
+      });
+    } catch (e) {
+      print('获取位置失败: $e');
+      setState(() {
+        _isLoadingLocation = false;
+        _hasLocationPermission = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('获取位置失败: $e')),
+        );
+      }
+    }
+  }
+
   /// 切换底部面板
   void _togglePanel(BottomPanelType panel) {
     // 先收起键盘
@@ -470,6 +561,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
           _activePanel = BottomPanelType.none;
         } else {
           _activePanel = panel;
+          // 如果打开位置面板，尝试获取附近地点
+          if (panel == BottomPanelType.location) {
+            _fetchNearbyLocations();
+          }
         }
       });
     });
@@ -737,15 +832,17 @@ class _EntryEditPageState extends State<EntryEditPage> {
     return Container(
       key: const ValueKey('location_panel'),
       padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(maxHeight: 400),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 标题行
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '添加位置',
+                '选择位置',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -770,6 +867,8 @@ class _EntryEditPageState extends State<EntryEditPage> {
             ],
           ),
           const SizedBox(height: 12),
+          
+          // 手动输入框
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
@@ -779,59 +878,134 @@ class _EntryEditPageState extends State<EntryEditPage> {
             child: Row(
               children: [
                 const Icon(
-                  Icons.location_on_outlined,
+                  Icons.edit_location_outlined,
                   color: Color(0xFF8E8E93),
-                  size: 22,
+                  size: 20,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _locationController,
-                    focusNode: _locationFocusNode,
                     decoration: const InputDecoration(
-                      hintText: '输入位置名称',
+                      hintText: '手动输入位置',
                       hintStyle: TextStyle(
                         color: Color(0xFFC7C7CC),
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12),
                     ),
-                    style: const TextStyle(fontSize: 16),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                    onSubmitted: (value) {
-                      _closePanel();
-                    },
+                    style: const TextStyle(fontSize: 14),
+                    onChanged: (value) => setState(() {}),
+                    onSubmitted: (value) => _closePanel(),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () {
-              _closePanel();
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF007AFF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                '确定',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+          
+          // 加载中或地点列表
+          if (_isLoadingLocation)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text(
+                      '正在获取附近地点...',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF8E8E93),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            )
+          else if (_hasLocationPermission && _nearbyPlaces.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              '附近地点',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF8E8E93),
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _nearbyPlaces.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final place = _nearbyPlaces[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.location_on,
+                        size: 20,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                    title: Text(
+                      place.name,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _locationController.text = place.name;
+                      });
+                      _closePanel();
+                    },
+                  );
+                },
+              ),
+            ),
+          ] else if (!_hasLocationPermission && !_isLoadingLocation) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F2F7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.location_off_outlined,
+                    size: 48,
+                    color: Color(0xFF8E8E93),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '需要位置权限才能获取附近地点',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8E8E93),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _fetchNearbyLocations,
+                    child: const Text('授权位置权限'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -182,15 +182,118 @@ refactor: 重构状态管理代码
 - [ ] 已在真机/模拟器上测试升级流程
 - [ ] `docs/DATABASE.md` 已更新版本变更记录
 
+### 密钥与敏感信息管理规范
+
+**重要：所有 API Key、密钥、密码等敏感信息必须使用配置文件管理，不得硬编码到代码中**
+
+#### 配置文件管理要求
+
+1. **配置文件结构**
+   - 实际配置文件：`lib/config.dart`（不提交到 Git）
+   - 示例模板文件：`lib/config.example.dart`（提交到 Git）
+   - 配置说明文档：`CONFIG_SETUP.md`（提交到 Git）
+
+2. **配置文件格式**
+   ```dart
+   /// 应用配置
+   /// 注意：此文件包含敏感信息，不应提交到版本控制
+   class AppConfig {
+     // API Keys
+     static const String amapApiKey = 'YOUR_API_KEY';
+     
+     // 数据库配置
+     static const String dbEncryptionKey = 'YOUR_KEY';
+     
+     // 其他敏感配置...
+   }
+   ```
+
+3. **示例模板格式**
+   ```dart
+   /// 应用配置示例文件
+   /// 使用方法：
+   /// 1. 复制此文件为 config.dart
+   /// 2. 在 config.dart 中填入你的实际密钥
+   /// 3. config.dart 不会被提交到 Git
+   class AppConfig {
+     // 高德地图 API Key
+     // 获取地址: https://lbs.amap.com/
+     static const String amapApiKey = 'YOUR_AMAP_API_KEY_HERE';
+     
+     // 其他配置...
+   }
+   ```
+
+4. **使用配置的方式**
+   ```dart
+   import '../config.dart';
+   
+   class SomeService {
+     static const String _apiKey = AppConfig.amapApiKey;
+     // 使用配置中的密钥
+   }
+   ```
+
+5. **.gitignore 配置**
+   - 必须将 `lib/config.dart` 添加到 `.gitignore`
+   - 确保敏感信息不会被提交到版本控制
+   ```gitignore
+   # 配置文件（包含敏感信息，不提交）
+   lib/config.dart
+   ```
+
+6. **新增密钥时的步骤**
+   - 在 `lib/config.dart` 中添加实际密钥
+   - 在 `lib/config.example.dart` 中添加占位符
+   - 在 `CONFIG_SETUP.md` 中更新说明文档
+   - 在代码中使用 `AppConfig.xxxKey` 引用
+
+7. **禁止的做法**
+   ❌ 硬编码 API Key 到代码中
+   ```dart
+   // 错误示例
+   static const String _apiKey = '498fb9da60888b1533cdcaf8f7d9c13d';
+   ```
+   
+   ✅ 从配置文件读取
+   ```dart
+   // 正确示例
+   import '../config.dart';
+   static const String _apiKey = AppConfig.amapApiKey;
+   ```
+
+8. **开发环境设置**
+   - 新成员克隆项目后，需要复制并配置：
+     ```bash
+     cp lib/config.example.dart lib/config.dart
+     # 然后编辑 config.dart 填入实际密钥
+     ```
+
+9. **CI/CD 配置**
+   - 在 CI/CD 环境中，需要通过环境变量或密钥管理服务注入配置
+   - 不要在 CI 配置文件中明文写入密钥
+
+#### 密钥安全检查清单
+
+在提交代码前，请确认：
+
+- [ ] 所有 API Key 和密钥都已移至 `config.dart`
+- [ ] `config.dart` 已添加到 `.gitignore`
+- [ ] `config.example.dart` 已更新（使用占位符）
+- [ ] `CONFIG_SETUP.md` 已更新说明
+- [ ] 代码中没有硬编码的敏感信息
+- [ ] Git 历史中没有泄露敏感信息（如有需要 `git filter-branch`）
+
 ### 注意事项
 
 - 每次提交应该是一个完整的功能或修复
 - 避免提交未完成的代码
 - 提交前确保代码可以正常运行
 - 保持提交历史的清晰和有意义
-- 不要提交敏感信息（API keys、密码等）
+- **不要提交敏感信息（API keys、密码等），必须使用配置文件管理**
 - 不要提交构建产物（build/、.dart_tool/ 等）
 - **数据库操作修改必须同步更新数据库操作文档**
 - **数据库表结构变更必须实现迁移逻辑**
+- **所有密钥必须通过配置文件管理，不得硬编码**
 
 
