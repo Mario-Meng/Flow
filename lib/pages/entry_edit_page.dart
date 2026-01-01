@@ -16,9 +16,9 @@ enum BottomPanelType {
   location, // 位置输入
 }
 
-/// 日记编辑页面
+/// Entry edit page
 class EntryEditPage extends StatefulWidget {
-  final Entry? entry; // 如果为 null，则为新建模式
+  final Entry? entry; // If null, create new entry mode
 
   const EntryEditPage({super.key, this.entry});
 
@@ -38,29 +38,29 @@ class _EntryEditPageState extends State<EntryEditPage> {
   Mood? _selectedMood;
   bool _isSaving = false;
   
-  // 当前显示的底部面板
+  // Current active bottom panel
   BottomPanelType _activePanel = BottomPanelType.none;
-  // 位置输入焦点
+  // Location input focus node
   final _locationFocusNode = FocusNode();
   
-  // 位置相关状态
+  // Location related state
   bool _isLoadingLocation = false;
   List<BusinessArea> _nearbyPlaces = [];
   bool _hasLocationPermission = false;
   
-  // 创建时间（可修改）
+  // Create time (editable)
   int? _customCreatedAt;
   
-  // 已选择的图片
+  // Selected images
   List<XFile> _selectedImages = [];
-  // 已选择的视频
+  // Selected videos
   List<XFile> _selectedVideos = [];
-  // 已有的媒体资源（编辑模式）
+  // Existing media assets (edit mode)
   List<Asset> _existingAssets = [];
 
   bool get isEditing => widget.entry != null;
   
-  /// 是否有媒体资源（已有的或新选择的）
+  /// Check if has media assets (existing or newly selected)
   bool get _hasMedia => 
       _existingAssets.isNotEmpty || 
       _selectedImages.isNotEmpty || 
@@ -89,7 +89,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     super.dispose();
   }
 
-  /// 选择图片
+  /// Pick images
   Future<void> _pickImages() async {
     final images = await _mediaService.pickMultipleImages();
     if (images.isNotEmpty) {
@@ -99,7 +99,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 拍照
+  /// Take photo
   Future<void> _takePhoto() async {
     final image = await _mediaService.takePhoto();
     if (image != null) {
@@ -109,7 +109,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 选择视频
+  /// Pick video
   Future<void> _pickVideo() async {
     final video = await _mediaService.pickVideo();
     if (video != null) {
@@ -119,7 +119,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 录制视频
+  /// Record video
   Future<void> _recordVideo() async {
     final video = await _mediaService.recordVideo();
     if (video != null) {
@@ -129,28 +129,28 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 移除新选择的图片
+  /// Remove selected image
   void _removeSelectedImage(int index) {
     setState(() {
       _selectedImages.removeAt(index);
     });
   }
 
-  /// 移除新选择的视频
+  /// Remove selected video
   void _removeSelectedVideo(int index) {
     setState(() {
       _selectedVideos.removeAt(index);
     });
   }
 
-  /// 移除已有的资源
+  /// Remove existing asset
   void _removeExistingAsset(int index) {
     setState(() {
       _existingAssets.removeAt(index);
     });
   }
 
-  /// 显示添加媒体的选项
+  /// Show add media options
   void _showMediaOptions() {
     showModalBottomSheet(
       context: context,
@@ -232,7 +232,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       List<Asset> newAssets = [];
       int sortOrder = _existingAssets.length;
       
-      // 处理新选择的图片
+      // Process newly selected images
       if (_selectedImages.isNotEmpty) {
         final imageAssets = await _mediaService.processAndSaveImages(
           images: _selectedImages,
@@ -243,7 +243,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
         sortOrder += imageAssets.length;
       }
       
-      // 处理新选择的视频
+      // Process newly selected videos
       for (final video in _selectedVideos) {
         final videoAsset = await _mediaService.processAndSaveVideo(
           video: video,
@@ -256,20 +256,20 @@ class _EntryEditPageState extends State<EntryEditPage> {
         }
       }
       
-      // 合并已有的和新的资源
+      // Merge existing and new assets
       final allAssets = [..._existingAssets, ...newAssets];
       
-      // 智能提取标题
+      // Smart title extraction
       String finalTitle = _titleController.text.trim();
       String finalContent = _contentController.text.trim();
       
-      // 如果标题为空且内容不为空，尝试从 Markdown 第一行提取标题
+      // If title is empty and content not empty, try to extract title from first Markdown line
       if (finalTitle.isEmpty && finalContent.isNotEmpty) {
         final lines = finalContent.split('\n');
         if (lines.isNotEmpty && lines[0].trim().startsWith('# ')) {
-          // 提取标题（去除 # 和空格）
+          // Extract title (remove # and spaces)
           finalTitle = lines[0].trim().substring(2).trim();
-          // 从内容中移除第一行标题
+          // Remove first line title from content
           finalContent = lines.sublist(1).join('\n').trim();
         }
       }
@@ -290,7 +290,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       if (isEditing) {
         await _dbService.updateEntry(entry);
         
-        // 删除移除的资源
+        // Delete removed assets
         final removedAssets = widget.entry!.mediaAssets
             .where((a) => !_existingAssets.any((e) => e.id == a.id))
             .toList();
@@ -302,13 +302,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
         await _dbService.insertEntry(entry);
       }
       
-      // 保存新的资源到数据库
+      // Save new assets to database
       if (newAssets.isNotEmpty) {
         await _dbService.insertAssets(newAssets);
       }
 
       if (mounted) {
-        Navigator.of(context).pop(true); // 返回 true 表示有更新
+        Navigator.of(context).pop(true); // Return true indicates update
       }
     } catch (e) {
       if (mounted) {
@@ -325,11 +325,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 获取键盘高度
+    // Get keyboard height
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // 底部安全区高度
+    // Bottom safe area height
     final bottomSafeArea = MediaQuery.of(context).padding.bottom;
-    // 工具栏高度
+    // Toolbar height
     const toolbarHeight = 56.0;
     
     return Scaffold(
@@ -372,12 +372,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
       body: Stack(
         children: [
-          // 主内容区域
+          // Main content area
           Form(
             key: _formKey,
             child: ListView(
               controller: _scrollController,
-              // 底部留出工具栏 + 安全区的空间
+              // Leave space for toolbar + safe area at bottom
               padding: EdgeInsets.only(
                 left: 12,
                 right: 12,
@@ -385,18 +385,18 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 bottom: toolbarHeight + bottomSafeArea + 12 + keyboardHeight,
               ),
               children: [
-                // 媒体区域（仅在有媒体时显示）
+                // Media section (only show when has media)
                 if (_hasMedia) ...[
                   _buildMediaSection(),
                   const SizedBox(height: 16),
                 ],
                 
-                // 标题和内容合并到一个卡片
+                // Merge title and content into one card
                 _buildSectionCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 标题输入
+                      // Title input
                       TextFormField(
                         controller: _titleController,
                         decoration: const InputDecoration(
@@ -419,7 +419,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         color: const Color(0xFFE5E5EA),
                       ),
                       const SizedBox(height: 12),
-                      // 内容输入
+                      // Content input
                       TextFormField(
                         controller: _contentController,
                         decoration: const InputDecoration(
@@ -436,11 +436,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         minLines: 10,
                         keyboardType: TextInputType.multiline,
                         validator: (value) {
-                          // 如果有媒体资源或标题，内容可以为空
+                          // Content can be empty if has media or title
                           if (_hasMedia || _titleController.text.trim().isNotEmpty) {
                             return null;
                           }
-                          // 没有媒体资源且没有标题时，内容必填
+                          // Content required when no media and no title
                           if (value == null || value.trim().isEmpty) {
                             return '请至少添加图片/视频、标题或内容';
                           }
@@ -460,19 +460,19 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 ),
                 const SizedBox(height: 12),
                 
-                // 已选择的心情和位置显示
+                // Display selected mood and location
                 if (_selectedMood != null || _locationController.text.isNotEmpty)
                   _buildSelectedInfoCard(),
 
                 const SizedBox(height: 16),
 
-                // 时间信息
+                // Time information
                 if (isEditing)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
                       children: [
-                        // 创建时间（可编辑）
+                        // Create time (editable)
                         GestureDetector(
                           onTap: _showDateTimePicker,
                           child: Row(
@@ -510,7 +510,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
             ),
           ),
           
-          // 底部浮动工具栏
+          // Bottom sticky toolbar
           Positioned(
             left: 0,
             right: 0,
@@ -526,14 +526,14 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 请求位置权限并获取附近地点
+  /// Request location permission and fetch nearby places
   Future<void> _fetchNearbyLocations() async {
     setState(() {
       _isLoadingLocation = true;
     });
 
     try {
-      // 检查位置服务是否启用
+      // Check if location service is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
@@ -548,7 +548,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
         return;
       }
 
-      // 检查位置权限
+      // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -580,12 +580,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
         return;
       }
 
-      // 获取当前位置
+      // Get current position
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // 调用高德API获取附近地点
+      // Call Amap API to get nearby places
       final places = await AmapService.getNearbyBusinessAreas(
         position.latitude,
         position.longitude,
@@ -610,21 +610,21 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 切换底部面板
+  /// Toggle bottom panel
   void _togglePanel(BottomPanelType panel) {
-    // 先收起键盘
+    // Close keyboard first
     FocusScope.of(context).unfocus();
     
-    // 等待键盘收起后再显示面板
+    // Wait for keyboard to close before showing panel
     Future.delayed(const Duration(milliseconds: 50), () {
       if (!mounted) return;
       setState(() {
         if (_activePanel == panel) {
-          // 如果点击当前激活的面板，则关闭
+          // If click current active panel, close it
           _activePanel = BottomPanelType.none;
         } else {
           _activePanel = panel;
-          // 如果打开位置面板，尝试获取附近地点
+          // If open location panel, try to fetch nearby places
           if (panel == BottomPanelType.location) {
             _fetchNearbyLocations();
           }
@@ -633,14 +633,14 @@ class _EntryEditPageState extends State<EntryEditPage> {
     });
   }
   
-  /// 关闭底部面板
+  /// Close bottom panel
   void _closePanel() {
     setState(() {
       _activePanel = BottomPanelType.none;
     });
   }
 
-  /// 构建底部浮动工具栏
+  /// Build sticky toolbar
   Widget _buildStickyToolbar({
     required double keyboardHeight,
     required double bottomSafeArea,
@@ -651,7 +651,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      // 整个工具栏+面板一起跟随键盘上移
+      // Move toolbar+panel together with keyboard
       transform: Matrix4.translationValues(0, -keyboardHeight, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -675,7 +675,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      // 图片按钮
+                      // Image button
                       _buildToolbarButton(
                         icon: Icons.image_outlined,
                         label: '图片',
@@ -687,7 +687,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         },
                       ),
                       const SizedBox(width: 8),
-                      // 位置按钮（使用 Flexible 防止溢出）
+                      // Location button（使用 Flexible 防止溢出）
                       Flexible(
                         child: _buildToolbarButton(
                           icon: Icons.location_on_outlined,
@@ -698,7 +698,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // 心情按钮
+                      // Mood button
                       _buildToolbarButton(
                         icon: _selectedMood != null ? null : Icons.mood_outlined,
                         emoji: _selectedMood?.emoji,
@@ -713,7 +713,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ),
             ),
           ),
-          // 底部面板（心情/位置选择）
+          // Bottom panel (mood/location selection)
           if (hasPanel)
             _buildBottomPanel(bottomSafeArea),
         ],
@@ -721,7 +721,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 构建工具栏按钮
+  /// Build toolbar button
   Widget _buildToolbarButton({
     IconData? icon,
     String? emoji,
@@ -776,7 +776,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
   
-  /// 构建底部面板
+  /// Build bottom panel
   Widget _buildBottomPanel(double bottomSafeArea) {
     return Container(
       decoration: const BoxDecoration(
@@ -800,7 +800,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
   
-  /// 构建心情选择面板
+  /// Build mood selection panel
   Widget _buildMoodPanel() {
     return Container(
       key: const ValueKey('mood_panel'),
@@ -890,7 +890,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
   
-  /// 构建位置输入面板
+  /// Build location input panel
   Widget _buildLocationPanel() {
     return Container(
       key: const ValueKey('location_panel'),
@@ -1074,7 +1074,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
   
-  /// 构建已选择信息卡片（显示在内容区域）
+  /// Build selected info card (display in content area)
   Widget _buildSelectedInfoCard() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1145,7 +1145,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 媒体区域（仅在有媒体时显示）
+  /// Media section (only show when has media)
   Widget _buildMediaSection() {
     return SizedBox(
       height: 100,
@@ -1176,7 +1176,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 已有资源缩略图
+  /// Existing asset thumbnail
   Widget _buildExistingAssetTile(Asset asset, int index) {
     return FutureBuilder<String>(
       future: _mediaService.getThumbnailPath(asset),
@@ -1205,7 +1205,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         ),
                 ),
               ),
-              // 视频标识
+              // Video indicator
               if (asset.isVideo)
                 Positioned(
                   bottom: 4,
@@ -1263,7 +1263,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 新选择的图片缩略图
+  /// Newly selected image thumbnail
   Widget _buildSelectedImageTile(XFile xFile, int index) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -1304,7 +1304,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ),
             ),
           ),
-          // 新图片标识
+          // New image indicator
           Positioned(
             bottom: 4,
             left: 4,
@@ -1329,7 +1329,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 新选择的视频缩略图
+  /// Newly selected video thumbnail
   Widget _buildSelectedVideoTile(XFile xFile, int index) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -1369,7 +1369,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ),
             ),
           ),
-          // 新视频标识
+          // New video indicator
           Positioned(
             bottom: 4,
             left: 4,
@@ -1416,7 +1416,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 显示日期时间选择器
+  /// Show date time picker
   Future<void> _showDateTimePicker() async {
     final entry = widget.entry;
     if (entry == null) return;
@@ -1491,7 +1491,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// 格式化日期时间
+  /// Format date time
   String _formatDateTime(DateTime dateTime) {
     return DateFormat('yyyy年M月d日 HH:mm', 'zh_CN').format(dateTime);
   }

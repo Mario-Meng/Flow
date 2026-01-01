@@ -1,4 +1,4 @@
-/// 心情枚举
+/// Mood enumeration
 enum Mood {
   veryUnhappy,     // 非常不愉快
   unhappy,         // 不愉快

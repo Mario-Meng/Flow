@@ -1,8 +1,8 @@
-/// 资源类型枚举
+/// Asset type enumeration
 enum AssetType {
-  image,  // 图片
-  video,  // 视频
-  audio,  // 音频
+  image,  // Image
+  video,  // Video
+  audio,  // Audio
 }
 
 extension AssetTypeExtension on AssetType {
@@ -33,17 +33,17 @@ extension AssetTypeExtension on AssetType {
 
 /// 资源模型
 class Asset {
-  final String id;           // 资源唯一ID (asset_时间戳_随机数)
+  final String id;           // Unique asset ID (asset_时间戳_随机数)
   final String entryId;      // 关联的日记ID
-  final AssetType type;      // 资源类型
-  final String fileName;     // 文件名
+  final AssetType type;      // Asset type
+  final String fileName;     // File name
   final String? mimeType;    // MIME类型
-  final int fileSize;        // 文件大小（字节）
-  final int? width;          // 宽度（图片/视频）
-  final int? height;         // 高度（图片/视频）
-  final int? duration;       // 时长（视频/音频，毫秒）
-  final int sortOrder;       // 排序顺序
-  final int createdAt;       // 创建时间戳（毫秒）
+  final int fileSize;        // File size (bytes)
+  final int? width;          // Width (image/video)
+  final int? height;         // Height (image/video)
+  final int? duration;       // Duration (video/audio, milliseconds)
+  final int sortOrder;       // Sort order
+  final int createdAt;       // Creation timestamp (milliseconds)
 
   Asset({
     required this.id,
@@ -59,7 +59,7 @@ class Asset {
     required this.createdAt,
   });
 
-  /// 从数据库 Map 创建
+  /// Create from database Map
   factory Asset.fromMap(Map<String, dynamic> map) {
     return Asset(
       id: map['id'] as String,
@@ -76,7 +76,7 @@ class Asset {
     );
   }
 
-  /// 转换为数据库 Map
+  /// Convert to database Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -98,7 +98,7 @@ class Asset {
 
   /// 获取缩略图的相对路径
   String get thumbnailPath {
-    // 视频缩略图使用 .jpg 扩展名
+    // Video缩略图使用 .jpg 扩展名
     if (type == AssetType.video) {
       final baseName = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
       return 'thumbnails/thumb_$baseName.jpg';

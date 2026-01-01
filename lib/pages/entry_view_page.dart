@@ -6,7 +6,7 @@ import '../models/models.dart';
 import '../services/services.dart';
 import 'entry_edit_page.dart';
 
-/// 日记查看页面
+/// Entry view page
 class EntryViewPage extends StatefulWidget {
   final Entry entry;
 
@@ -19,7 +19,7 @@ class EntryViewPage extends StatefulWidget {
 class _EntryViewPageState extends State<EntryViewPage> {
   final _mediaService = MediaService();
 
-  /// 进入编辑模式
+  /// Enter edit mode
   Future<void> _enterEditMode() async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -28,7 +28,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
     );
 
     if (result == true && mounted) {
-      // 编辑完成，返回主页刷新
+      // Edit completed, return to home and refresh
       Navigator.of(context).pop(true);
     }
   }
@@ -69,13 +69,13 @@ class _EntryViewPageState extends State<EntryViewPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 媒体区域
+          // Media section
           if (widget.entry.mediaAssets.isNotEmpty) ...[
             _buildMediaSection(),
             const SizedBox(height: 16),
           ],
 
-          // 内容卡片
+          // Content card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -85,7 +85,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 标题
+                // Title
                 if (widget.entry.title.trim().isNotEmpty) ...[
                   Text(
                     widget.entry.title,
@@ -104,7 +104,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
                   const SizedBox(height: 16),
                 ],
 
-                // Markdown 内容
+                // Markdown content
                 if (widget.entry.content.trim().isNotEmpty)
                   MarkdownWidget(
                     data: widget.entry.content,
@@ -155,7 +155,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
 
           const SizedBox(height: 16),
 
-          // 心情和位置信息
+          // Mood and location info
           if (widget.entry.mood != null || widget.entry.locationName != null)
             Container(
               padding: const EdgeInsets.all(12),
@@ -176,7 +176,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
 
           const SizedBox(height: 16),
 
-          // 时间信息
+          // Time information
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(
@@ -206,7 +206,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
     );
   }
 
-  /// 媒体区域
+  /// Media section
   Widget _buildMediaSection() {
     return SizedBox(
       height: 200,

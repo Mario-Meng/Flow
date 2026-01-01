@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/models.dart';
 
-/// 数据库服务
+/// Database service
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
@@ -13,7 +13,7 @@ class DatabaseService {
   static Database? _database;
   static String? _appDocPath;
 
-  /// 获取应用文档目录路径
+  /// Get application document directory path
   Future<String> get appDocPath async {
     if (_appDocPath != null) return _appDocPath!;
     final directory = await getApplicationDocumentsDirectory();
@@ -21,19 +21,19 @@ class DatabaseService {
     return _appDocPath!;
   }
 
-  /// 获取数据库实例
+  /// Get database instance
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
-  /// 初始化数据库
+  /// Initialize database
   Future<Database> _initDatabase() async {
     final docPath = await appDocPath;
     final dbPath = join(docPath, 'flow.db');
 
-    // 确保资源目录存在
+    // Ensure asset directories exist
     await _ensureDirectoriesExist();
 
     return await openDatabase(
@@ -44,26 +44,26 @@ class DatabaseService {
     );
   }
 
-  /// 确保必要的目录存在
+  /// Ensure necessary directories exist
   Future<void> _ensureDirectoriesExist() async {
     final docPath = await appDocPath;
     
-    // 创建 assets 目录
+    // Create assets directory
     final assetsDir = Directory(join(docPath, 'assets'));
     if (!await assetsDir.exists()) {
       await assetsDir.create(recursive: true);
     }
 
-    // 创建 thumbnails 目录
+    // Create thumbnails directory
     final thumbsDir = Directory(join(docPath, 'thumbnails'));
     if (!await thumbsDir.exists()) {
       await thumbsDir.create(recursive: true);
     }
   }
 
-  /// 创建数据库表
+  /// Create database tables
   Future<void> _onCreate(Database db, int version) async {
-    // 创建 entries 表
+    // Create entries table
     await db.execute('''
       CREATE TABLE entries (
         id TEXT PRIMARY KEY,
@@ -80,7 +80,7 @@ class DatabaseService {
       )
     ''');
 
-    // 创建 assets 表
+    // Create assets table
     await db.execute('''
       CREATE TABLE assets (
         id TEXT PRIMARY KEY,
@@ -98,7 +98,7 @@ class DatabaseService {
       )
     ''');
 
-    // 创建索引
+    // Create indexes
     await db.execute('''
       CREATE INDEX idx_entries_created_at ON entries (created_at DESC)
     ''');
@@ -113,9 +113,9 @@ class DatabaseService {
     ''');
   }
 
-  /// 数据库升级
+  /// Database upgrade
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // 版本 1 -> 2: 添加收藏功能
+    // Version 1 -> 2: Add favorite feature
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE entries ADD COLUMN is_favorite INTEGER DEFAULT 0');
       await db.execute('CREATE INDEX idx_entries_is_favorite ON entries (is_favorite)');
@@ -124,7 +124,7 @@ class DatabaseService {
 
   // ============ Entry 操作 ============
 
-  /// 插入日记条目
+  /// Insert entry
   Future<void> insertEntry(Entry entry) async {
     final db = await database;
     await db.insert(
@@ -134,7 +134,7 @@ class DatabaseService {
     );
   }
 
-  /// 更新日记条目
+  /// Update entry
   Future<void> updateEntry(Entry entry) async {
     final db = await database;
     await db.update(
@@ -145,7 +145,7 @@ class DatabaseService {
     );
   }
 
-  /// 软删除日记条目
+  /// Soft delete entry
   Future<void> deleteEntry(String id) async {
     final db = await database;
     await db.update(
@@ -156,7 +156,7 @@ class DatabaseService {
     );
   }
 
-  /// 获取所有未删除的日记条目
+  /// Get all non-deleted entries
   Future<List<Entry>> getEntries() async {
     final db = await database;
     final maps = await db.query(
@@ -167,14 +167,14 @@ class DatabaseService {
 
     final entries = <Entry>[];
     for (final map in maps) {
-      // 获取关联的资源
+      // Get associated assets
       final assets = await getAssetsByEntryId(map['id'] as String);
       entries.add(Entry.fromMap(map, assets: assets));
     }
     return entries;
   }
 
-  /// 根据 ID 获取日记条目
+  /// Get entry by ID
   Future<Entry?> getEntryById(String id) async {
     final db = await database;
     final maps = await db.query(
@@ -189,7 +189,7 @@ class DatabaseService {
     return Entry.fromMap(maps.first, assets: assets);
   }
 
-  /// 切换收藏状态
+  /// Toggle favorite status
   Future<void> toggleFavorite(String id) async {
     final db = await database;
     final entry = await getEntryById(id);
@@ -206,7 +206,7 @@ class DatabaseService {
     );
   }
 
-  /// 获取所有收藏的日记条目
+  /// Get all favorite entries
   Future<List<Entry>> getFavoriteEntries() async {
     final db = await database;
     final maps = await db.query(
@@ -225,7 +225,7 @@ class DatabaseService {
 
   // ============ Asset 操作 ============
 
-  /// 插入资源
+  /// Insert asset
   Future<void> insertAsset(Asset asset) async {
     final db = await database;
     await db.insert(
@@ -235,7 +235,7 @@ class DatabaseService {
     );
   }
 
-  /// 批量插入资源
+  /// Batch insert assets
   Future<void> insertAssets(List<Asset> assets) async {
     final db = await database;
     final batch = db.batch();
@@ -249,7 +249,7 @@ class DatabaseService {
     await batch.commit(noResult: true);
   }
 
-  /// 删除资源
+  /// Delete asset
   Future<void> deleteAsset(String id) async {
     final db = await database;
     await db.delete(
@@ -259,7 +259,7 @@ class DatabaseService {
     );
   }
 
-  /// 删除日记条目关联的所有资源
+  /// Delete all assets associated with entry
   Future<void> deleteAssetsByEntryId(String entryId) async {
     final db = await database;
     await db.delete(
@@ -269,7 +269,7 @@ class DatabaseService {
     );
   }
 
-  /// 获取日记条目关联的所有资源
+  /// Get all assets associated with entry
   Future<List<Asset>> getAssetsByEntryId(String entryId) async {
     final db = await database;
     final maps = await db.query(
@@ -282,19 +282,19 @@ class DatabaseService {
     return maps.map((map) => Asset.fromMap(map)).toList();
   }
 
-  /// 获取资源文件的完整路径
+  /// Get full path of asset file
   Future<String> getAssetFilePath(Asset asset) async {
     final docPath = await appDocPath;
     return join(docPath, asset.relativePath);
   }
 
-  /// 获取缩略图的完整路径
+  /// Get full path of thumbnail
   Future<String> getThumbnailPath(Asset asset) async {
     final docPath = await appDocPath;
     return join(docPath, asset.thumbnailPath);
   }
 
-  /// 关闭数据库
+  /// Close database
   Future<void> close() async {
     final db = await database;
     await db.close();

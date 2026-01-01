@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config.dart';
 
-/// 商圈信息
+/// Business area information
 class BusinessArea {
   final String name;
-  final String? location; // 经纬度
+  final String? location; // Longitude and latitude
   
   const BusinessArea({
     required this.name,
@@ -13,12 +13,12 @@ class BusinessArea {
   });
 }
 
-/// 高德地图服务
+/// Amap service
 class AmapService {
-  // 高德 Web服务 Key（从配置文件读取）
+  // Amap Web Service Key (from config file)
   static const String _apiKey = AppConfig.amapApiKey;
   
-  /// 根据经纬度获取附近商圈信息
+  /// Get nearby business areas by coordinates
   /// [latitude] 纬度
   /// [longitude] 经度
   /// [radius] 搜索半径（米），默认1000米
@@ -27,8 +27,8 @@ class AmapService {
     double longitude, {
     int radius = 3000,
   }) async {
-    // 高德逆地理编码 API 地址
-    // extensions=all 是必须的，否则不会返回 poi 和商圈信息
+    // Amap reverse geocoding API URL
+    // extensions=all is required, otherwise no POI and business info
     final String url = 
         'https://restapi.amap.com/v3/geocode/regeo?'
         'output=json&'
@@ -43,16 +43,16 @@ class AmapService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        // 检查 API 返回状态
+        // Check API return status
         if (data['status'] == '1' && data['regeocode'] != null) {
           final addressComponent = data['regeocode']['addressComponent'];
           
-          // 获取格式化地址
+          // Get formatted address
           final String formattedAddress = data['regeocode']['formatted_address'] ?? '';
           
           List<BusinessArea> areas = [];
           
-          // 添加当前位置作为第一个选项
+          // Add current location as first option
           if (formattedAddress.isNotEmpty) {
             areas.add(BusinessArea(
               name: formattedAddress,
@@ -60,11 +60,11 @@ class AmapService {
             ));
           }
           
-          // 获取 businessAreas 列表
+          // Get businessAreas list
           if (addressComponent['businessAreas'] != null) {
             final List<dynamic> businessAreas = addressComponent['businessAreas'];
             
-            // 提取商圈名称
+            // Extract business area names
             for (var area in businessAreas) {
               if (area['name'] != null && (area['name'] as String).isNotEmpty) {
                 areas.add(BusinessArea(
@@ -75,7 +75,7 @@ class AmapService {
             }
           }
           
-          // 如果有POI列表，也添加一些
+          // If has POI list, add some
           if (data['regeocode']['pois'] != null) {
             final List<dynamic> pois = data['regeocode']['pois'];
             for (var i = 0; i < pois.length && i < 5; i++) {
@@ -94,12 +94,12 @@ class AmapService {
       }
       return [];
     } catch (e) {
-      print('获取商圈信息失败: $e');
+      print('Failed to fetch business areas: $e');
       return [];
     }
   }
   
-  /// 获取格式化的地址
+  /// Get formatted address
   static Future<String?> getFormattedAddress(
     double latitude,
     double longitude,
@@ -122,7 +122,7 @@ class AmapService {
       }
       return null;
     } catch (e) {
-      print('获取地址失败: $e');
+      print('Failed to fetch address: $e');
       return null;
     }
   }

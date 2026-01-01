@@ -1,21 +1,21 @@
 import 'mood.dart';
 import 'asset.dart';
 
-/// 日记条目模型
+/// Entry model
 class Entry {
-  final String id;            // 日记唯一ID
-  final String title;         // 标题
-  final String content;       // 内容（Markdown格式）
-  final Mood? mood;           // 心情
-  final double? latitude;     // 纬度
-  final double? longitude;    // 经度
-  final String? locationName; // 地点名称
-  final int createdAt;        // 创建时间戳（毫秒）
-  final int updatedAt;        // 更新时间戳（毫秒）
-  final bool isDeleted;       // 是否已删除
-  final bool isFavorite;      // 是否收藏
+  final String id;            // Unique entry ID
+  final String title;         // Title
+  final String content;       // Content (Markdown format)
+  final Mood? mood;           // Mood
+  final double? latitude;     // Latitude
+  final double? longitude;    // Longitude
+  final String? locationName; // Location name
+  final int createdAt;        // Creation timestamp (milliseconds)
+  final int updatedAt;        // Update timestamp (milliseconds)
+  final bool isDeleted;       // Is deleted
+  final bool isFavorite;      // Is favorite
 
-  // 关联的资源列表（非数据库字段）
+  // Associated assets list (not a database field)
   final List<Asset> assets;
 
   Entry({
@@ -33,7 +33,7 @@ class Entry {
     this.assets = const [],
   });
 
-  /// 从数据库 Map 创建
+  /// Create from database Map
   factory Entry.fromMap(Map<String, dynamic> map, {List<Asset>? assets}) {
     return Entry(
       id: map['id'] as String,
@@ -51,7 +51,7 @@ class Entry {
     );
   }
 
-  /// 转换为数据库 Map
+  /// Convert to database Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -68,41 +68,41 @@ class Entry {
     };
   }
 
-  /// 获取创建时间的 DateTime
+  /// Get creation DateTime
   DateTime get createdDateTime => DateTime.fromMillisecondsSinceEpoch(createdAt);
 
-  /// 获取更新时间的 DateTime
+  /// Get update DateTime
   DateTime get updatedDateTime => DateTime.fromMillisecondsSinceEpoch(updatedAt);
 
-  /// 获取内容摘要（去除Markdown标记）
+  /// Get content summary (remove Markdown marks)
   String get contentSummary {
-    // 简单去除 Markdown 标记
+    // Simple Markdown mark removal
     String summary = content
-        .replaceAll(RegExp(r'<[^>]*>'), '') // 去除 HTML 标签
-        .replaceAll(RegExp(r'[#*_`\[\]]'), '') // 去除常见 Markdown 标记
-        .replaceAll(RegExp(r'\n+'), ' ') // 换行替换为空格
+        .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+        .replaceAll(RegExp(r'[#*_`\[\]]'), '') // Remove common Markdown marks
+        .replaceAll(RegExp(r'\n+'), ' ') // Replace newlines with spaces
         .trim();
     
-    // 限制长度
+    // Limit length
     if (summary.length > 150) {
       summary = '${summary.substring(0, 150)}...';
     }
     return summary;
   }
 
-  /// 获取图片资源列表
+  /// Get image assets list
   List<Asset> get imageAssets => 
       assets.where((a) => a.type == AssetType.image).toList();
 
-  /// 获取视频资源列表
+  /// Get video assets list
   List<Asset> get videoAssets => 
       assets.where((a) => a.type == AssetType.video).toList();
 
-  /// 获取所有媒体资源（图片+视频）
+  /// Get all media assets (images + videos)
   List<Asset> get mediaAssets => 
       assets.where((a) => a.type == AssetType.image || a.type == AssetType.video).toList();
 
-  /// 复制并修改
+  /// Copy with modifications
   Entry copyWith({
     String? id,
     String? title,
