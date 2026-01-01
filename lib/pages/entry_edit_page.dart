@@ -388,12 +388,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '请输入标题';
-                      }
-                      return null;
-                    },
+                    // 标题为可选字段，不做必填验证
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -416,8 +411,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
                     minLines: 8,
                     keyboardType: TextInputType.multiline,
                     validator: (value) {
+                      // 如果有媒体资源或标题，内容可以为空
+                      if (_hasMedia || _titleController.text.trim().isNotEmpty) {
+                        return null;
+                      }
+                      // 没有媒体资源且没有标题时，内容必填
                       if (value == null || value.trim().isEmpty) {
-                        return '请输入内容';
+                        return '请至少添加图片/视频、标题或内容';
                       }
                       return null;
                     },

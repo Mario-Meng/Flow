@@ -373,54 +373,65 @@ class _JournalCardState extends State<JournalCard> {
             GestureDetector(
               onTap: widget.onTap,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                // 如果没有标题和内容，使用较小的 padding
+                padding: EdgeInsets.all(
+                  (widget.entry.title.trim().isEmpty &&
+                   widget.entry.contentSummary.trim().isNotEmpty) ? 8 : 16
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 心情和地点标签
-                    if (widget.entry.mood != null || widget.entry.locationName != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (widget.entry.mood != null) _buildMoodTag(widget.entry.mood!),
-                            if (widget.entry.locationName != null)
-                              _buildLocationTag(widget.entry.locationName!),
-                          ],
+                    // 标题或内容摘要
+                    if (widget.entry.title.trim().isNotEmpty) ...[
+                      // 有标题时显示标题
+                      Text(
+                        widget.entry.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                          height: 1.3,
                         ),
                       ),
-                    // 标题
-                    Text(
-                      widget.entry.title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                        height: 1.3,
+                      // 如果有内容，显示内容摘要
+                      if (widget.entry.contentSummary.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.entry.contentSummary,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.black.withOpacity(0.85),
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ] else if (widget.entry.contentSummary.trim().isNotEmpty)
+                      // 无标题但有内容时直接显示内容
+                      Text(
+                        widget.entry.contentSummary,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Colors.black,
+                          height: 1.4,
+                        ),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    // 内容摘要
-                    Text(
-                      widget.entry.contentSummary,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.black.withOpacity(0.85),
-                        height: 1.4,
+                    
+                    // 分隔线（仅在有标题或内容时显示）
+                    if (widget.entry.title.trim().isNotEmpty || 
+                        widget.entry.contentSummary.trim().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 0.5,
+                        color: const Color(0xFFE5E5EA),
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    // 分隔线
-                    Container(
-                      height: 0.5,
-                      color: const Color(0xFFE5E5EA),
-                    ),
-                    const SizedBox(height: 12),
-                    // 日期和更多按钮
+                      const SizedBox(height: 12),
+                    ],
+                    
+                    // 日期和更多按钮（始终显示）
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
