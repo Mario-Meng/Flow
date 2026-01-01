@@ -259,10 +259,25 @@ class _EntryEditPageState extends State<EntryEditPage> {
       // 合并已有的和新的资源
       final allAssets = [..._existingAssets, ...newAssets];
       
+      // 智能提取标题
+      String finalTitle = _titleController.text.trim();
+      String finalContent = _contentController.text.trim();
+      
+      // 如果标题为空且内容不为空，尝试从 Markdown 第一行提取标题
+      if (finalTitle.isEmpty && finalContent.isNotEmpty) {
+        final lines = finalContent.split('\n');
+        if (lines.isNotEmpty && lines[0].trim().startsWith('# ')) {
+          // 提取标题（去除 # 和空格）
+          finalTitle = lines[0].trim().substring(2).trim();
+          // 从内容中移除第一行标题
+          finalContent = lines.sublist(1).join('\n').trim();
+        }
+      }
+      
       final entry = Entry(
         id: entryId,
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
+        title: finalTitle,
+        content: finalContent,
         mood: _selectedMood,
         locationName: _locationController.text.trim().isEmpty
             ? null
