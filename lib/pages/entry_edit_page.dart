@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../l10n/app_localizations.dart';
 
 /// 底部面板类型
 enum BottomPanelType {
@@ -324,6 +325,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Get keyboard height
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // Bottom safe area height
@@ -342,7 +344,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          isEditing ? '编辑日记' : '新建日记',
+          isEditing ? l10n.editEntry : l10n.newEntry,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 17,
@@ -359,8 +361,8 @@ class _EntryEditPageState extends State<EntryEditPage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    '保存',
+                : Text(
+                    l10n.save,
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
           ),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../l10n/app_localizations.dart';
 import 'entry_edit_page.dart';
 
 /// Entry view page
@@ -33,6 +34,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
@@ -42,9 +44,9 @@ class _EntryViewPageState extends State<EntryViewPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          '查看日记',
-          style: TextStyle(
+        title: Text(
+          l10n.viewEntry,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -54,8 +56,8 @@ class _EntryViewPageState extends State<EntryViewPage> {
         actions: [
           TextButton(
             onPressed: _enterEditMode,
-            child: const Text(
-              '编辑',
+            child: Text(
+              l10n.edit,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
           ),
