@@ -22,9 +22,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
   /// Enter edit mode
   Future<void> _enterEditMode() async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EntryEditPage(entry: widget.entry),
-      ),
+      MaterialPageRoute(builder: (_) => EntryEditPage(entry: widget.entry)),
     );
 
     if (result == true && mounted) {
@@ -58,10 +56,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
             onPressed: _enterEditMode,
             child: const Text(
               '编辑',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -97,10 +92,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    height: 1,
-                    color: const Color(0xFFE5E5EA),
-                  ),
+                  Container(height: 1, color: const Color(0xFFE5E5EA)),
                   const SizedBox(height: 16),
                 ],
 
@@ -167,7 +159,8 @@ class _EntryViewPageState extends State<EntryViewPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (widget.entry.mood != null) _buildMoodTag(widget.entry.mood!),
+                  if (widget.entry.mood != null)
+                    _buildMoodTag(widget.entry.mood!),
                   if (widget.entry.locationName != null)
                     _buildLocationTag(widget.entry.locationName!),
                 ],
@@ -217,7 +210,9 @@ class _EntryViewPageState extends State<EntryViewPage> {
         itemBuilder: (context, index) {
           final asset = widget.entry.mediaAssets[index];
           return Padding(
-            padding: EdgeInsets.only(right: index < widget.entry.mediaAssets.length - 1 ? 8 : 0),
+            padding: EdgeInsets.only(
+              right: index < widget.entry.mediaAssets.length - 1 ? 8 : 0,
+            ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: FutureBuilder<String>(
@@ -233,9 +228,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
                   return Container(
                     width: 160,
                     color: const Color(0xFFE5E5EA),
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: const Center(child: CircularProgressIndicator()),
                   );
                 },
               ),
@@ -281,11 +274,7 @@ class _EntryViewPageState extends State<EntryViewPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.location_on,
-            size: 16,
-            color: Color(0xFF007AFF),
-          ),
+          const Icon(Icons.location_on, size: 16, color: Color(0xFF007AFF)),
           const SizedBox(width: 4),
           Text(
             location,
@@ -304,4 +293,3 @@ class _EntryViewPageState extends State<EntryViewPage> {
     return DateFormat('yyyy年M月d日 HH:mm', 'zh_CN').format(dateTime);
   }
 }
-

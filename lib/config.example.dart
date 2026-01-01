@@ -7,7 +7,6 @@ class AppConfig {
   // 高德地图 API Key
   // 获取地址: https://lbs.amap.com/
   static const String amapApiKey = 'YOUR_AMAP_API_KEY_HERE';
-  
+
   // 其他配置...
 }
-

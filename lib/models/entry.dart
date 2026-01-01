@@ -3,17 +3,17 @@ import 'asset.dart';
 
 /// Entry model
 class Entry {
-  final String id;            // Unique entry ID
-  final String title;         // Title
-  final String content;       // Content (Markdown format)
-  final Mood? mood;           // Mood
-  final double? latitude;     // Latitude
-  final double? longitude;    // Longitude
+  final String id; // Unique entry ID
+  final String title; // Title
+  final String content; // Content (Markdown format)
+  final Mood? mood; // Mood
+  final double? latitude; // Latitude
+  final double? longitude; // Longitude
   final String? locationName; // Location name
-  final int createdAt;        // Creation timestamp (milliseconds)
-  final int updatedAt;        // Update timestamp (milliseconds)
-  final bool isDeleted;       // Is deleted
-  final bool isFavorite;      // Is favorite
+  final int createdAt; // Creation timestamp (milliseconds)
+  final int updatedAt; // Update timestamp (milliseconds)
+  final bool isDeleted; // Is deleted
+  final bool isFavorite; // Is favorite
 
   // Associated assets list (not a database field)
   final List<Asset> assets;
@@ -69,10 +69,12 @@ class Entry {
   }
 
   /// Get creation DateTime
-  DateTime get createdDateTime => DateTime.fromMillisecondsSinceEpoch(createdAt);
+  DateTime get createdDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(createdAt);
 
   /// Get update DateTime
-  DateTime get updatedDateTime => DateTime.fromMillisecondsSinceEpoch(updatedAt);
+  DateTime get updatedDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(updatedAt);
 
   /// Get content summary (remove Markdown marks)
   String get contentSummary {
@@ -82,7 +84,7 @@ class Entry {
         .replaceAll(RegExp(r'[#*_`\[\]]'), '') // Remove common Markdown marks
         .replaceAll(RegExp(r'\n+'), ' ') // Replace newlines with spaces
         .trim();
-    
+
     // Limit length
     if (summary.length > 150) {
       summary = '${summary.substring(0, 150)}...';
@@ -91,16 +93,17 @@ class Entry {
   }
 
   /// Get image assets list
-  List<Asset> get imageAssets => 
+  List<Asset> get imageAssets =>
       assets.where((a) => a.type == AssetType.image).toList();
 
   /// Get video assets list
-  List<Asset> get videoAssets => 
+  List<Asset> get videoAssets =>
       assets.where((a) => a.type == AssetType.video).toList();
 
   /// Get all media assets (images + videos)
-  List<Asset> get mediaAssets => 
-      assets.where((a) => a.type == AssetType.image || a.type == AssetType.video).toList();
+  List<Asset> get mediaAssets => assets
+      .where((a) => a.type == AssetType.image || a.type == AssetType.video)
+      .toList();
 
   /// Copy with modifications
   Entry copyWith({
@@ -133,4 +136,3 @@ class Entry {
     );
   }
 }
-

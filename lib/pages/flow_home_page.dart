@@ -24,7 +24,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   List<Entry> _entries = [];
   bool _isLoading = true;
   bool _showOnlyFavorites = false; // Show only favorites
-  
+
   // Global unique video controller
   VideoPlayerController? _globalVideoController;
   String? _currentVideoAssetId;
@@ -58,12 +58,12 @@ class _FlowHomePageState extends State<FlowHomePage> {
 
   Future<void> _loadEntries() async {
     setState(() => _isLoading = true);
-    
+
     // 清理旧的视频控制器
     _disposeGlobalVideoController();
-    
+
     try {
-      final entries = _showOnlyFavorites 
+      final entries = _showOnlyFavorites
           ? await _dbService.getFavoriteEntries()
           : await _dbService.getEntries();
       if (mounted) {
@@ -75,9 +75,9 @@ class _FlowHomePageState extends State<FlowHomePage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('加载失败: $e')));
       }
     }
   }
@@ -99,9 +99,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   /// 打开查看页面
   Future<void> _openViewPage(Entry entry) async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EntryViewPage(entry: entry),
-      ),
+      MaterialPageRoute(builder: (_) => EntryViewPage(entry: entry)),
     );
 
     if (result == true) {
@@ -112,9 +110,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   /// 打开编辑页面
   Future<void> _openEditPage([Entry? entry]) async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EntryEditPage(entry: entry),
-      ),
+      MaterialPageRoute(builder: (_) => EntryEditPage(entry: entry)),
     );
 
     if (result == true) {
@@ -163,7 +159,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
       await _globalVideoController!.initialize();
       _globalVideoController!.setLooping(true);
       _globalVideoController!.setVolume(0.0); // 静音播放
-      
+
       if (mounted) {
         setState(() {
           _currentVideoAssetId = assetId;
@@ -177,7 +173,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
   }
 
   void _pauseCurrentVideo() {
-    if (_globalVideoController != null && 
+    if (_globalVideoController != null &&
         _globalVideoController!.value.isInitialized &&
         _globalVideoController!.value.isPlaying) {
       try {
@@ -221,17 +217,17 @@ class _FlowHomePageState extends State<FlowHomePage> {
                                   Scaffold.of(context).openDrawer();
                                 },
                                 child: Container(
-                                width: 32,
-                                height: 32,
-                                margin: const EdgeInsets.only(right: 0),
-                                
-                                child: const Icon(
-                                  Icons.menu_rounded,
-                                  size: 20,
-                                  color: Color(0xFF8E8E93),
+                                  width: 32,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(right: 0),
+
+                                  child: const Icon(
+                                    Icons.menu_rounded,
+                                    size: 20,
+                                    color: Color(0xFF8E8E93),
+                                  ),
                                 ),
                               ),
-                            ),
                             ),
                             const Text(
                               'Flow',
@@ -267,68 +263,72 @@ class _FlowHomePageState extends State<FlowHomePage> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (_entries.isEmpty)
-                  SliverFillRemaining(
-                    child: _buildEmptyState(),
-                  )
+                  SliverFillRemaining(child: _buildEmptyState())
                 else
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Slidable(
-                              key: ValueKey(_entries[index].id),
-                              endActionPane: ActionPane(
-                                motion: const StretchMotion(),
-                                extentRatio: 0.55,
-                                children: [
-                                  CustomSlidableAction(
-                                    onPressed: (_) => _toggleFavorite(_entries[index]),
-                                    backgroundColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                                    child: _buildCircleActionButton(
-                                      icon: _entries[index].isFavorite 
-                                          ? Icons.star_rounded 
-                                          : Icons.star_border_rounded,
-                                      color: const Color(0xFFFFCC00),
-                                    ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Slidable(
+                            key: ValueKey(_entries[index].id),
+                            endActionPane: ActionPane(
+                              motion: const StretchMotion(),
+                              extentRatio: 0.55,
+                              children: [
+                                CustomSlidableAction(
+                                  onPressed: (_) =>
+                                      _toggleFavorite(_entries[index]),
+                                  backgroundColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
                                   ),
-                                  CustomSlidableAction(
-                                    onPressed: (_) => _openEditPage(_entries[index]),
-                                    backgroundColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                                    child: _buildCircleActionButton(
-                                      icon: Icons.edit_rounded,
-                                      color: const Color(0xFF007AFF),
-                                    ),
+                                  child: _buildCircleActionButton(
+                                    icon: _entries[index].isFavorite
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    color: const Color(0xFFFFCC00),
                                   ),
-                                  CustomSlidableAction(
-                                    onPressed: (_) => _deleteEntry(_entries[index]),
-                                    backgroundColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                                    child: _buildCircleActionButton(
-                                      icon: Icons.delete_rounded,
-                                      color: const Color(0xFFFF3B30),
-                                    ),
+                                ),
+                                CustomSlidableAction(
+                                  onPressed: (_) =>
+                                      _openEditPage(_entries[index]),
+                                  backgroundColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
                                   ),
-                                ],
-                              ),
-                              child: FlowCard(
-                                entry: _entries[index],
-                                mediaService: _mediaService,
-                                currentVideoAssetId: _currentVideoAssetId,
-                                getVideoController: _getVideoController,
-                                onVideoVisibilityChanged: _switchVideo,
-                                onVideoVisibilityLost: _pauseCurrentVideo,
-                                onTap: () => _openViewPage(_entries[index]),
-                              ),
+                                  child: _buildCircleActionButton(
+                                    icon: Icons.edit_rounded,
+                                    color: const Color(0xFF007AFF),
+                                  ),
+                                ),
+                                CustomSlidableAction(
+                                  onPressed: (_) =>
+                                      _deleteEntry(_entries[index]),
+                                  backgroundColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: _buildCircleActionButton(
+                                    icon: Icons.delete_rounded,
+                                    color: const Color(0xFFFF3B30),
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                        childCount: _entries.length,
-                      ),
+                            child: FlowCard(
+                              entry: _entries[index],
+                              mediaService: _mediaService,
+                              currentVideoAssetId: _currentVideoAssetId,
+                              getVideoController: _getVideoController,
+                              onVideoVisibilityChanged: _switchVideo,
+                              onVideoVisibilityLost: _pauseCurrentVideo,
+                              onTap: () => _openViewPage(_entries[index]),
+                            ),
+                          ),
+                        );
+                      }, childCount: _entries.length),
                     ),
                   ),
               ],
@@ -355,11 +355,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.add,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 32),
                   ),
                 ),
               ),
@@ -408,10 +404,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   const SizedBox(height: 4),
                   const Text(
                     '记录生活的每一刻',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF8E8E93),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF8E8E93)),
                   ),
                 ],
               ),
@@ -426,7 +419,10 @@ class _FlowHomePageState extends State<FlowHomePage> {
                     leading: const Icon(Icons.article_outlined),
                     title: const Text('所有内容'),
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF007AFF).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -446,8 +442,8 @@ class _FlowHomePageState extends State<FlowHomePage> {
                   ),
                   ListTile(
                     leading: Icon(
-                      _showOnlyFavorites 
-                          ? Icons.favorite 
+                      _showOnlyFavorites
+                          ? Icons.favorite
                           : Icons.favorite_outline,
                       color: _showOnlyFavorites ? Colors.red : null,
                     ),
@@ -544,11 +540,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
             ),
           ],
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }
@@ -583,10 +575,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
           const SizedBox(height: 8),
           const Text(
             '点击下方按钮开始记录',
-            style: TextStyle(
-              fontSize: 15,
-              color: Color(0xFF8E8E93),
-            ),
+            style: TextStyle(fontSize: 15, color: Color(0xFF8E8E93)),
           ),
         ],
       ),
@@ -623,118 +612,117 @@ class _FlowCardState extends State<FlowCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 媒体区域（如果有图片或视频资源）
-            if (widget.entry.mediaAssets.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                child: _buildMediaLayout(),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 媒体区域（如果有图片或视频资源）
+          if (widget.entry.mediaAssets.isNotEmpty)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
-            // 内容区域（可点击进入编辑页面）
-            GestureDetector(
-              onTap: widget.onTap,
-              child: Padding(
-                // 如果没有标题和内容，使用较小的 padding
-                padding: EdgeInsets.all(
-                  (widget.entry.title.trim().isEmpty &&
-                   widget.entry.contentSummary.trim().isNotEmpty) ? 8 : 16
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 标题或内容摘要
-                    if (widget.entry.title.trim().isNotEmpty) ...[
-                      // 有标题时显示标题
-                      Text(
-                        widget.entry.title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                          height: 1.3,
-                        ),
+              child: _buildMediaLayout(),
+            ),
+          // 内容区域（可点击进入编辑页面）
+          GestureDetector(
+            onTap: widget.onTap,
+            child: Padding(
+              // 如果没有标题和内容，使用较小的 padding
+              padding: EdgeInsets.all(
+                (widget.entry.title.trim().isEmpty &&
+                        widget.entry.contentSummary.trim().isNotEmpty)
+                    ? 8
+                    : 16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题或内容摘要
+                  if (widget.entry.title.trim().isNotEmpty) ...[
+                    // 有标题时显示标题
+                    Text(
+                      widget.entry.title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                        height: 1.3,
                       ),
-                      // 如果有内容，显示内容摘要
-                      if (widget.entry.contentSummary.trim().isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.entry.contentSummary,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.black.withOpacity(0.85),
-                            height: 1.4,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ] else if (widget.entry.contentSummary.trim().isNotEmpty)
-                      // 无标题但有内容时直接显示内容
+                    ),
+                    // 如果有内容，显示内容摘要
+                    if (widget.entry.contentSummary.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
                       Text(
                         widget.entry.contentSummary,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
-                          color: Colors.black,
+                          color: Colors.black.withOpacity(0.85),
                           height: 1.4,
                         ),
-                        maxLines: 4,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    
-                    // 分隔线（仅在有标题或内容时显示）
-                    if (widget.entry.title.trim().isNotEmpty || 
-                        widget.entry.contentSummary.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        height: 0.5,
-                        color: const Color(0xFFE5E5EA),
-                      ),
-                      const SizedBox(height: 12),
                     ],
-                    
-                    // 日期和更多按钮（始终显示）
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDate(widget.entry.createdDateTime),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF8E8E93),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => _showMoreOptions(context),
-                          child: const Icon(
-                            Icons.more_horiz,
-                            color: Color(0xFF8E8E93),
-                            size: 20,
-                          ),
-                        ),
-                      ],
+                  ] else if (widget.entry.contentSummary.trim().isNotEmpty)
+                    // 无标题但有内容时直接显示内容
+                    Text(
+                      widget.entry.contentSummary,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black,
+                        height: 1.4,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                     ),
+
+                  // 分隔线（仅在有标题或内容时显示）
+                  if (widget.entry.title.trim().isNotEmpty ||
+                      widget.entry.contentSummary.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(height: 0.5, color: const Color(0xFFE5E5EA)),
+                    const SizedBox(height: 12),
                   ],
-                ),
+
+                  // 日期和更多按钮（始终显示）
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDate(widget.entry.createdDateTime),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => _showMoreOptions(context),
+                        child: const Icon(
+                          Icons.more_horiz,
+                          color: Color(0xFF8E8E93),
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -752,7 +740,7 @@ class _FlowCardState extends State<FlowCard> {
     }
 
     final count = media.length;
-    
+
     if (count == 1) {
       // 单媒体模式
       return SizedBox(
@@ -778,14 +766,21 @@ class _FlowCardState extends State<FlowCard> {
         height: 180,
         child: Row(
           children: [
-            Expanded(flex: 2, child: _buildMediaTile(media[0], 0, firstVideoIndex)),
+            Expanded(
+              flex: 2,
+              child: _buildMediaTile(media[0], 0, firstVideoIndex),
+            ),
             const SizedBox(width: 2),
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildMediaTile(media[1], 1, firstVideoIndex)),
+                  Expanded(
+                    child: _buildMediaTile(media[1], 1, firstVideoIndex),
+                  ),
                   const SizedBox(height: 2),
-                  Expanded(child: _buildMediaTile(media[2], 2, firstVideoIndex)),
+                  Expanded(
+                    child: _buildMediaTile(media[2], 2, firstVideoIndex),
+                  ),
                 ],
               ),
             ),
@@ -801,9 +796,13 @@ class _FlowCardState extends State<FlowCard> {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildMediaTile(media[0], 0, firstVideoIndex)),
+                  Expanded(
+                    child: _buildMediaTile(media[0], 0, firstVideoIndex),
+                  ),
                   const SizedBox(height: 2),
-                  Expanded(child: _buildMediaTile(media[2], 2, firstVideoIndex)),
+                  Expanded(
+                    child: _buildMediaTile(media[2], 2, firstVideoIndex),
+                  ),
                 ],
               ),
             ),
@@ -811,7 +810,9 @@ class _FlowCardState extends State<FlowCard> {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildMediaTile(media[1], 1, firstVideoIndex)),
+                  Expanded(
+                    child: _buildMediaTile(media[1], 1, firstVideoIndex),
+                  ),
                   const SizedBox(height: 2),
                   Expanded(
                     child: Stack(
@@ -868,7 +869,7 @@ class _FlowCardState extends State<FlowCard> {
         );
       }
     }
-    
+
     // 图片使用缩略图
     return FutureBuilder<String>(
       future: widget.mediaService.getThumbnailPath(asset),
@@ -891,11 +892,9 @@ class _FlowCardState extends State<FlowCard> {
   Future<void> _playVideo(Asset asset) async {
     final videoPath = await widget.mediaService.getOriginalPath(asset);
     if (!mounted) return;
-    
+
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => VideoPlayerPage(videoPath: videoPath),
-      ),
+      MaterialPageRoute(builder: (_) => VideoPlayerPage(videoPath: videoPath)),
     );
   }
 
@@ -921,7 +920,10 @@ class _FlowCardState extends State<FlowCard> {
                   bottom: 4,
                   right: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(4),
@@ -948,7 +950,7 @@ class _FlowCardState extends State<FlowCard> {
     final duration = Duration(milliseconds: durationMs);
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds.remainder(60);
-    
+
     if (minutes > 0) {
       return '${minutes}:${seconds.toString().padLeft(2, '0')}';
     } else {
@@ -1004,11 +1006,7 @@ class _FlowCardState extends State<FlowCard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.location_on,
-            size: 14,
-            color: Color(0xFF4ECDC4),
-          ),
+          const Icon(Icons.location_on, size: 14, color: Color(0xFF4ECDC4)),
           const SizedBox(width: 4),
           Text(
             location,
@@ -1025,7 +1023,7 @@ class _FlowCardState extends State<FlowCard> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    
+
     // 将日期归零到当天0点，只比较日期不比较时间
     final today = DateTime(now.year, now.month, now.day);
     final targetDate = DateTime(date.year, date.month, date.day);
@@ -1126,10 +1124,10 @@ class _VideoTileState extends State<VideoTile> {
 
   void _onVisibilityChanged(VisibilityInfo info) {
     final isVisible = info.visibleFraction > 0.5; // 超过50%可见时播放
-    
+
     if (_isVisible != isVisible && _videoPath != null) {
       _isVisible = isVisible;
-      
+
       if (isVisible) {
         widget.onVisibilityChanged(widget.asset.id, _videoPath!);
       } else {
@@ -1143,7 +1141,7 @@ class _VideoTileState extends State<VideoTile> {
       _videoPath = await widget.mediaService.getOriginalPath(widget.asset);
     }
     if (!mounted || _videoPath == null) return;
-    
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => VideoPlayerPage(videoPath: _videoPath!),
@@ -1155,7 +1153,7 @@ class _VideoTileState extends State<VideoTile> {
     final duration = Duration(milliseconds: durationMs);
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds.remainder(60);
-    
+
     if (minutes > 0) {
       return '${minutes}:${seconds.toString().padLeft(2, '0')}';
     } else {
@@ -1167,7 +1165,7 @@ class _VideoTileState extends State<VideoTile> {
   Widget build(BuildContext context) {
     final controller = widget.getVideoController(widget.asset.id);
     final isCurrentVideo = widget.currentVideoAssetId == widget.asset.id;
-    
+
     return GestureDetector(
       onTap: _playVideo,
       child: VisibilityDetector(
@@ -1178,9 +1176,9 @@ class _VideoTileState extends State<VideoTile> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              isCurrentVideo && 
-              controller != null && 
-              controller.value.isInitialized
+              isCurrentVideo &&
+                      controller != null &&
+                      controller.value.isInitialized
                   ? FittedBox(
                       fit: BoxFit.cover,
                       child: SizedBox(
@@ -1190,7 +1188,9 @@ class _VideoTileState extends State<VideoTile> {
                       ),
                     )
                   : FutureBuilder<String>(
-                      future: widget.mediaService.getThumbnailPath(widget.asset),
+                      future: widget.mediaService.getThumbnailPath(
+                        widget.asset,
+                      ),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           final file = File(snapshot.data!);
@@ -1221,7 +1221,10 @@ class _VideoTileState extends State<VideoTile> {
                   bottom: 4,
                   right: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(4),
@@ -1280,9 +1283,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       debugPrint('Failed to initialize fullscreen video: $e');
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('视频加载失败')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('视频加载失败')));
       }
     }
   }
@@ -1337,9 +1340,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         aspectRatio: _controller.value.aspectRatio,
                         child: VideoPlayer(_controller),
                       )
-                    : const CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
+                    : const CircularProgressIndicator(color: Colors.white),
               ),
             ),
             // 控制层
@@ -1350,7 +1351,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -1384,7 +1388,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                      _controller.value.isPlaying
+                          ? Icons.pause
+                          : Icons.play_arrow,
                       color: Colors.black87,
                       size: 40,
                     ),

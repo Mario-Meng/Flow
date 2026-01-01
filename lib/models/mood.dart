@@ -1,12 +1,12 @@
 /// Mood enumeration
 enum Mood {
-  veryUnhappy,     // 非常不愉快
-  unhappy,         // 不愉快
+  veryUnhappy, // 非常不愉快
+  unhappy, // 不愉快
   slightlyUnhappy, // 有点不愉快
-  neutral,         // 不喜不悲
-  slightlyHappy,   // 有点愉快
-  happy,           // 愉快
-  veryHappy,       // 非常愉快
+  neutral, // 不喜不悲
+  slightlyHappy, // 有点愉快
+  happy, // 愉快
+  veryHappy, // 非常愉快
 }
 
 extension MoodExtension on Mood {
@@ -80,4 +80,3 @@ extension MoodExtension on Mood {
     }
   }
 }
-

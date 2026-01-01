@@ -47,7 +47,7 @@ class DatabaseService {
   /// Ensure necessary directories exist
   Future<void> _ensureDirectoriesExist() async {
     final docPath = await appDocPath;
-    
+
     // Create assets directory
     final assetsDir = Directory(join(docPath, 'assets'));
     if (!await assetsDir.exists()) {
@@ -117,8 +117,12 @@ class DatabaseService {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Version 1 -> 2: Add favorite feature
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE entries ADD COLUMN is_favorite INTEGER DEFAULT 0');
-      await db.execute('CREATE INDEX idx_entries_is_favorite ON entries (is_favorite)');
+      await db.execute(
+        'ALTER TABLE entries ADD COLUMN is_favorite INTEGER DEFAULT 0',
+      );
+      await db.execute(
+        'CREATE INDEX idx_entries_is_favorite ON entries (is_favorite)',
+      );
     }
   }
 
@@ -177,11 +181,7 @@ class DatabaseService {
   /// Get entry by ID
   Future<Entry?> getEntryById(String id) async {
     final db = await database;
-    final maps = await db.query(
-      'entries',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final maps = await db.query('entries', where: 'id = ?', whereArgs: [id]);
 
     if (maps.isEmpty) return null;
 
@@ -194,7 +194,7 @@ class DatabaseService {
     final db = await database;
     final entry = await getEntryById(id);
     if (entry == null) return;
-    
+
     await db.update(
       'entries',
       {
@@ -252,21 +252,13 @@ class DatabaseService {
   /// Delete asset
   Future<void> deleteAsset(String id) async {
     final db = await database;
-    await db.delete(
-      'assets',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('assets', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Delete all assets associated with entry
   Future<void> deleteAssetsByEntryId(String entryId) async {
     final db = await database;
-    await db.delete(
-      'assets',
-      where: 'entry_id = ?',
-      whereArgs: [entryId],
-    );
+    await db.delete('assets', where: 'entry_id = ?', whereArgs: [entryId]);
   }
 
   /// Get all assets associated with entry

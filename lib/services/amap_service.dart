@@ -6,18 +6,15 @@ import '../config.dart';
 class BusinessArea {
   final String name;
   final String? location; // Longitude and latitude
-  
-  const BusinessArea({
-    required this.name,
-    this.location,
-  });
+
+  const BusinessArea({required this.name, this.location});
 }
 
 /// Amap service
 class AmapService {
   // Amap Web Service Key (from config file)
   static const String _apiKey = AppConfig.amapApiKey;
-  
+
   /// Get nearby business areas by coordinates
   /// [latitude] 纬度
   /// [longitude] 经度
@@ -29,7 +26,7 @@ class AmapService {
   }) async {
     // Amap reverse geocoding API URL
     // extensions=all is required, otherwise no POI and business info
-    final String url = 
+    final String url =
         'https://restapi.amap.com/v3/geocode/regeo?'
         'output=json&'
         'location=$longitude,$latitude&'
@@ -46,49 +43,57 @@ class AmapService {
         // Check API return status
         if (data['status'] == '1' && data['regeocode'] != null) {
           final addressComponent = data['regeocode']['addressComponent'];
-          
+
           // Get formatted address
-          final String formattedAddress = data['regeocode']['formatted_address'] ?? '';
-          
+          final String formattedAddress =
+              data['regeocode']['formatted_address'] ?? '';
+
           List<BusinessArea> areas = [];
-          
+
           // Add current location as first option
           if (formattedAddress.isNotEmpty) {
-            areas.add(BusinessArea(
-              name: formattedAddress,
-              location: '$longitude,$latitude',
-            ));
+            areas.add(
+              BusinessArea(
+                name: formattedAddress,
+                location: '$longitude,$latitude',
+              ),
+            );
           }
-          
+
           // Get businessAreas list
           if (addressComponent['businessAreas'] != null) {
-            final List<dynamic> businessAreas = addressComponent['businessAreas'];
-            
+            final List<dynamic> businessAreas =
+                addressComponent['businessAreas'];
+
             // Extract business area names
             for (var area in businessAreas) {
               if (area['name'] != null && (area['name'] as String).isNotEmpty) {
-                areas.add(BusinessArea(
-                  name: area['name'] as String,
-                  location: area['location'],
-                ));
+                areas.add(
+                  BusinessArea(
+                    name: area['name'] as String,
+                    location: area['location'],
+                  ),
+                );
               }
             }
           }
-          
+
           // If has POI list, add some
           if (data['regeocode']['pois'] != null) {
             final List<dynamic> pois = data['regeocode']['pois'];
             for (var i = 0; i < pois.length && i < 5; i++) {
               final poi = pois[i];
               if (poi['name'] != null && (poi['name'] as String).isNotEmpty) {
-                areas.add(BusinessArea(
-                  name: poi['name'] as String,
-                  location: poi['location'],
-                ));
+                areas.add(
+                  BusinessArea(
+                    name: poi['name'] as String,
+                    location: poi['location'],
+                  ),
+                );
               }
             }
           }
-          
+
           return areas;
         }
       }
@@ -98,13 +103,13 @@ class AmapService {
       return [];
     }
   }
-  
+
   /// Get formatted address
   static Future<String?> getFormattedAddress(
     double latitude,
     double longitude,
   ) async {
-    final String url = 
+    final String url =
         'https://restapi.amap.com/v3/geocode/regeo?'
         'output=json&'
         'location=$longitude,$latitude&'
@@ -127,4 +132,3 @@ class AmapService {
     }
   }
 }
-

@@ -11,8 +11,8 @@ import '../services/services.dart';
 
 /// 底部面板类型
 enum BottomPanelType {
-  none,   // 无面板
-  mood,   // 心情选择
+  none, // 无面板
+  mood, // 心情选择
   location, // 位置输入
 }
 
@@ -37,20 +37,20 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   Mood? _selectedMood;
   bool _isSaving = false;
-  
+
   // Current active bottom panel
   BottomPanelType _activePanel = BottomPanelType.none;
   // Location input focus node
   final _locationFocusNode = FocusNode();
-  
+
   // Location related state
   bool _isLoadingLocation = false;
   List<BusinessArea> _nearbyPlaces = [];
   bool _hasLocationPermission = false;
-  
+
   // Create time (editable)
   int? _customCreatedAt;
-  
+
   // Selected images
   List<XFile> _selectedImages = [];
   // Selected videos
@@ -59,11 +59,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
   List<Asset> _existingAssets = [];
 
   bool get isEditing => widget.entry != null;
-  
+
   /// Check if has media assets (existing or newly selected)
-  bool get _hasMedia => 
-      _existingAssets.isNotEmpty || 
-      _selectedImages.isNotEmpty || 
+  bool get _hasMedia =>
+      _existingAssets.isNotEmpty ||
+      _selectedImages.isNotEmpty ||
       _selectedVideos.isNotEmpty;
 
   @override
@@ -174,10 +174,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               padding: EdgeInsets.all(16),
               child: Text(
                 '添加媒体',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
             ListTile(
@@ -228,10 +225,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
       final entryId = isEditing ? widget.entry!.id : const Uuid().v4();
-      
+
       List<Asset> newAssets = [];
       int sortOrder = _existingAssets.length;
-      
+
       // Process newly selected images
       if (_selectedImages.isNotEmpty) {
         final imageAssets = await _mediaService.processAndSaveImages(
@@ -242,7 +239,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
         newAssets.addAll(imageAssets);
         sortOrder += imageAssets.length;
       }
-      
+
       // Process newly selected videos
       for (final video in _selectedVideos) {
         final videoAsset = await _mediaService.processAndSaveVideo(
@@ -255,14 +252,14 @@ class _EntryEditPageState extends State<EntryEditPage> {
           sortOrder++;
         }
       }
-      
+
       // Merge existing and new assets
       final allAssets = [..._existingAssets, ...newAssets];
-      
+
       // Smart title extraction
       String finalTitle = _titleController.text.trim();
       String finalContent = _contentController.text.trim();
-      
+
       // If title is empty and content not empty, try to extract title from first Markdown line
       if (finalTitle.isEmpty && finalContent.isNotEmpty) {
         final lines = finalContent.split('\n');
@@ -273,7 +270,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
           finalContent = lines.sublist(1).join('\n').trim();
         }
       }
-      
+
       final entry = Entry(
         id: entryId,
         title: finalTitle,
@@ -282,14 +279,16 @@ class _EntryEditPageState extends State<EntryEditPage> {
         locationName: _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
-        createdAt: isEditing ? (_customCreatedAt ?? widget.entry!.createdAt) : now,
+        createdAt: isEditing
+            ? (_customCreatedAt ?? widget.entry!.createdAt)
+            : now,
         updatedAt: now,
         assets: allAssets,
       );
 
       if (isEditing) {
         await _dbService.updateEntry(entry);
-        
+
         // Delete removed assets
         final removedAssets = widget.entry!.mediaAssets
             .where((a) => !_existingAssets.any((e) => e.id == a.id))
@@ -301,7 +300,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       } else {
         await _dbService.insertEntry(entry);
       }
-      
+
       // Save new assets to database
       if (newAssets.isNotEmpty) {
         await _dbService.insertAssets(newAssets);
@@ -312,9 +311,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     } finally {
       if (mounted) {
@@ -331,7 +330,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     final bottomSafeArea = MediaQuery.of(context).padding.bottom;
     // Toolbar height
     const toolbarHeight = 56.0;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
       resizeToAvoidBottomInset: false, // 禁用自动调整，我们手动处理
@@ -362,10 +361,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   )
                 : const Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
           ),
         ],
@@ -390,7 +386,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   _buildMediaSection(),
                   const SizedBox(height: 16),
                 ],
-                
+
                 // Merge title and content into one card
                 _buildSectionCard(
                   child: Column(
@@ -414,10 +410,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Container(
-                        height: 0.5,
-                        color: const Color(0xFFE5E5EA),
-                      ),
+                      Container(height: 0.5, color: const Color(0xFFE5E5EA)),
                       const SizedBox(height: 12),
                       // Content input
                       TextFormField(
@@ -437,7 +430,8 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         keyboardType: TextInputType.multiline,
                         validator: (value) {
                           // Content can be empty if has media or title
-                          if (_hasMedia || _titleController.text.trim().isNotEmpty) {
+                          if (_hasMedia ||
+                              _titleController.text.trim().isNotEmpty) {
                             return null;
                           }
                           // Content required when no media and no title
@@ -459,9 +453,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Display selected mood and location
-                if (_selectedMood != null || _locationController.text.isNotEmpty)
+                if (_selectedMood != null ||
+                    _locationController.text.isNotEmpty)
                   _buildSelectedInfoCard(),
 
                 const SizedBox(height: 16),
@@ -509,7 +504,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ],
             ),
           ),
-          
+
           // Bottom sticky toolbar
           Positioned(
             left: 0,
@@ -537,9 +532,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('请先打开位置服务')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('请先打开位置服务')));
         }
         setState(() {
           _isLoadingLocation = false;
@@ -566,10 +561,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('位置权限被永久拒绝，请在设置中允许'),
-              action: SnackBarAction(
-                label: '打开设置',
-                onPressed: openAppSettings,
-              ),
+              action: SnackBarAction(label: '打开设置', onPressed: openAppSettings),
             ),
           );
         }
@@ -603,9 +595,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
         _hasLocationPermission = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('获取位置失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('获取位置失败: $e')));
       }
     }
   }
@@ -614,7 +606,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
   void _togglePanel(BottomPanelType panel) {
     // Close keyboard first
     FocusScope.of(context).unfocus();
-    
+
     // Wait for keyboard to close before showing panel
     Future.delayed(const Duration(milliseconds: 50), () {
       if (!mounted) return;
@@ -632,7 +624,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       });
     });
   }
-  
+
   /// Close bottom panel
   void _closePanel() {
     setState(() {
@@ -647,7 +639,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     required double toolbarHeight,
   }) {
     final hasPanel = _activePanel != BottomPanelType.none;
-    
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
@@ -664,10 +656,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF2F2F7).withOpacity(0.9),
                   border: const Border(
-                    top: BorderSide(
-                      color: Color(0xFFE5E5EA),
-                      width: 0.5,
-                    ),
+                    top: BorderSide(color: Color(0xFFE5E5EA), width: 0.5),
                   ),
                 ),
                 child: Container(
@@ -691,7 +680,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
                       Flexible(
                         child: _buildToolbarButton(
                           icon: Icons.location_on_outlined,
-                          label: _locationController.text.isEmpty ? '位置' : _locationController.text,
+                          label: _locationController.text.isEmpty
+                              ? '位置'
+                              : _locationController.text,
                           isActive: _activePanel == BottomPanelType.location,
                           hasValue: _locationController.text.isNotEmpty,
                           onTap: () => _togglePanel(BottomPanelType.location),
@@ -700,7 +691,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
                       const SizedBox(width: 8),
                       // Mood button
                       _buildToolbarButton(
-                        icon: _selectedMood != null ? null : Icons.mood_outlined,
+                        icon: _selectedMood != null
+                            ? null
+                            : Icons.mood_outlined,
                         emoji: _selectedMood?.emoji,
                         label: _selectedMood?.displayName ?? '心情',
                         isActive: _activePanel == BottomPanelType.mood,
@@ -714,8 +707,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
             ),
           ),
           // Bottom panel (mood/location selection)
-          if (hasPanel)
-            _buildBottomPanel(bottomSafeArea),
+          if (hasPanel) _buildBottomPanel(bottomSafeArea),
         ],
       ),
     );
@@ -730,10 +722,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
     bool isActive = false,
     bool hasValue = false,
   }) {
-    final color = isActive ? const Color(0xFF007AFF) : 
-                  hasValue ? const Color(0xFF34C759) : 
-                  const Color(0xFF007AFF);
-    
+    final color = isActive
+        ? const Color(0xFF007AFF)
+        : hasValue
+        ? const Color(0xFF34C759)
+        : const Color(0xFF007AFF);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -741,11 +735,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive 
+          color: isActive
               ? const Color(0xFF007AFF).withOpacity(0.15)
               : Colors.white.withOpacity(0.6),
           borderRadius: BorderRadius.circular(20),
-          border: isActive 
+          border: isActive
               ? Border.all(color: const Color(0xFF007AFF), width: 1.5)
               : null,
         ),
@@ -775,18 +769,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
     );
   }
-  
+
   /// Build bottom panel
   Widget _buildBottomPanel(double bottomSafeArea) {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFFE5E5EA),
-            width: 0.5,
-          ),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE5E5EA), width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -799,7 +788,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
     );
   }
-  
+
   /// Build mood selection panel
   Widget _buildMoodPanel() {
     return Container(
@@ -829,10 +818,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   },
                   child: const Text(
                     '清除',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF007AFF),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF007AFF)),
                   ),
                 ),
             ],
@@ -855,14 +841,19 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Color(mood.colorValue).withOpacity(0.2)
                         : const Color(0xFFF2F2F7),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isSelected ? Color(mood.colorValue) : Colors.transparent,
+                      color: isSelected
+                          ? Color(mood.colorValue)
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -875,8 +866,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         mood.displayName,
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? Color(mood.colorValue) : const Color(0xFF1C1C1E),
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? Color(mood.colorValue)
+                              : const Color(0xFF1C1C1E),
                         ),
                       ),
                     ],
@@ -889,7 +884,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
     );
   }
-  
+
   /// Build location input panel
   Widget _buildLocationPanel() {
     return Container(
@@ -921,16 +916,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   },
                   child: const Text(
                     '清除',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF007AFF),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF007AFF)),
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // 手动输入框
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -966,7 +958,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ],
             ),
           ),
-          
+
           // 加载中或地点列表
           if (_isLoadingLocation)
             const Padding(
@@ -978,10 +970,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                     SizedBox(height: 12),
                     Text(
                       '正在获取附近地点...',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF8E8E93),
-                      ),
+                      style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
                     ),
                   ],
                 ),
@@ -1054,10 +1043,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   const SizedBox(height: 8),
                   const Text(
                     '需要位置权限才能获取附近地点',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF8E8E93),
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -1073,7 +1059,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
     );
   }
-  
+
   /// Build selected info card (display in content area)
   Widget _buildSelectedInfoCard() {
     return Container(
@@ -1094,7 +1080,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_selectedMood!.emoji, style: const TextStyle(fontSize: 16)),
+                  Text(
+                    _selectedMood!.emoji,
+                    style: const TextStyle(fontSize: 16),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _selectedMood!.displayName,
@@ -1112,7 +1101,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
           if (_locationController.text.isNotEmpty)
             Flexible(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF2F2F7),
                   borderRadius: BorderRadius.circular(16),
@@ -1211,7 +1203,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   bottom: 4,
                   left: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(4),
@@ -1219,11 +1214,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.videocam,
-                          size: 12,
-                          color: Colors.white,
-                        ),
+                        Icon(Icons.videocam, size: 12, color: Colors.white),
                         SizedBox(width: 2),
                         Text(
                           '视频',
@@ -1296,11 +1287,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
               ),
             ),
           ),
@@ -1342,11 +1329,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               height: 100,
               color: const Color(0xFF2C2C2E),
               child: const Center(
-                child: Icon(
-                  Icons.videocam,
-                  size: 32,
-                  color: Colors.white54,
-                ),
+                child: Icon(Icons.videocam, size: 32, color: Colors.white54),
               ),
             ),
           ),
@@ -1361,11 +1344,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
               ),
             ),
           ),
@@ -1382,11 +1361,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.videocam,
-                    size: 10,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.videocam, size: 10, color: Colors.white),
                   SizedBox(width: 2),
                   Text(
                     '新',
@@ -1420,7 +1395,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
   Future<void> _showDateTimePicker() async {
     final entry = widget.entry;
     if (entry == null) return;
-    
+
     // 1. 选择日期
     final pickedDate = await showDatePicker(
       context: context,
@@ -1431,17 +1406,15 @@ class _EntryEditPageState extends State<EntryEditPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF007AFF),
-            ),
+            colorScheme: const ColorScheme.light(primary: Color(0xFF007AFF)),
           ),
           child: child!,
         );
       },
     );
-    
+
     if (pickedDate == null || !mounted) return;
-    
+
     // 2. 选择时间
     final pickedTime = await showTimePicker(
       context: context,
@@ -1449,17 +1422,15 @@ class _EntryEditPageState extends State<EntryEditPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF007AFF),
-            ),
+            colorScheme: const ColorScheme.light(primary: Color(0xFF007AFF)),
           ),
           child: child!,
         );
       },
     );
-    
+
     if (pickedTime == null || !mounted) return;
-    
+
     // 3. 合并日期和时间
     final newDateTime = DateTime(
       pickedDate.year,
@@ -1468,26 +1439,26 @@ class _EntryEditPageState extends State<EntryEditPage> {
       pickedTime.hour,
       pickedTime.minute,
     );
-    
+
     // 4. 检查是否超过当前时间
     if (newDateTime.isAfter(DateTime.now())) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('创建时间不能超过当前时间')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('创建时间不能超过当前时间')));
       }
       return;
     }
-    
+
     // 5. 更新本地状态
     setState(() {
       _customCreatedAt = newDateTime.millisecondsSinceEpoch;
     });
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('创建时间已修改，保存后生效')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('创建时间已修改，保存后生效')));
     }
   }
 
@@ -1531,10 +1502,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      mood.emoji,
-                      style: const TextStyle(fontSize: 20),
-                    ),
+                    Text(mood.emoji, style: const TextStyle(fontSize: 20)),
                     if (isSelected) ...[
                       const SizedBox(width: 6),
                       Text(

@@ -54,35 +54,35 @@ class ImageService {
       final bytes = await xFile.readAsBytes();
       final now = DateTime.now().millisecondsSinceEpoch;
       final randomSuffix = const Uuid().v4().substring(0, 8);
-      
+
       // 获取文件扩展名
       final originalExt = extension(xFile.path).toLowerCase();
       final ext = originalExt.isNotEmpty ? originalExt : '.jpg';
-      
+
       // 生成文件名
       final fileName = 'asset_${now}_$randomSuffix$ext';
       final thumbFileName = 'thumb_$fileName';
-      
+
       // 保存原图
       final originalPath = join(assetsDir, fileName);
       await File(originalPath).writeAsBytes(bytes);
-      
+
       // 获取图片尺寸
       final decodedImage = img.decodeImage(bytes);
       int? width;
       int? height;
-      
+
       if (decodedImage != null) {
         width = decodedImage.width;
         height = decodedImage.height;
-        
+
         // 生成缩略图
         final thumbnail = _createThumbnail(decodedImage);
         final thumbPath = join(thumbsDir, thumbFileName);
         final thumbBytes = img.encodeJpg(thumbnail, quality: 80);
         await File(thumbPath).writeAsBytes(thumbBytes);
       }
-      
+
       // 创建 Asset 对象
       final asset = Asset(
         id: 'asset_${now}_$randomSuffix',
@@ -96,10 +96,10 @@ class ImageService {
         sortOrder: i,
         createdAt: now,
       );
-      
+
       assets.add(asset);
     }
-    
+
     return assets;
   }
 
@@ -107,7 +107,7 @@ class ImageService {
   img.Image _createThumbnail(img.Image image) {
     int newWidth;
     int newHeight;
-    
+
     if (image.width > image.height) {
       newWidth = thumbnailMaxSize;
       newHeight = (image.height * thumbnailMaxSize / image.width).round();
@@ -115,7 +115,7 @@ class ImageService {
       newHeight = thumbnailMaxSize;
       newWidth = (image.width * thumbnailMaxSize / image.height).round();
     }
-    
+
     return img.copyResize(
       image,
       width: newWidth,
@@ -159,16 +159,15 @@ class ImageService {
   Future<void> deleteImageFiles(Asset asset) async {
     final originalPath = await getOriginalPath(asset);
     final thumbPath = await getThumbnailPath(asset);
-    
+
     final originalFile = File(originalPath);
     if (await originalFile.exists()) {
       await originalFile.delete();
     }
-    
+
     final thumbFile = File(thumbPath);
     if (await thumbFile.exists()) {
       await thumbFile.delete();
     }
   }
 }
-

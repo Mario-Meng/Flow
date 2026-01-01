@@ -1,8 +1,8 @@
 /// Asset type enumeration
 enum AssetType {
-  image,  // Image
-  video,  // Video
-  audio,  // Audio
+  image, // Image
+  video, // Video
+  audio, // Audio
 }
 
 extension AssetTypeExtension on AssetType {
@@ -33,17 +33,17 @@ extension AssetTypeExtension on AssetType {
 
 /// 资源模型
 class Asset {
-  final String id;           // Unique asset ID (asset_时间戳_随机数)
-  final String entryId;      // 关联的日记ID
-  final AssetType type;      // Asset type
-  final String fileName;     // File name
-  final String? mimeType;    // MIME类型
-  final int fileSize;        // File size (bytes)
-  final int? width;          // Width (image/video)
-  final int? height;         // Height (image/video)
-  final int? duration;       // Duration (video/audio, milliseconds)
-  final int sortOrder;       // Sort order
-  final int createdAt;       // Creation timestamp (milliseconds)
+  final String id; // Unique asset ID (asset_时间戳_随机数)
+  final String entryId; // 关联的日记ID
+  final AssetType type; // Asset type
+  final String fileName; // File name
+  final String? mimeType; // MIME类型
+  final int fileSize; // File size (bytes)
+  final int? width; // Width (image/video)
+  final int? height; // Height (image/video)
+  final int? duration; // Duration (video/audio, milliseconds)
+  final int sortOrder; // Sort order
+  final int createdAt; // Creation timestamp (milliseconds)
 
   Asset({
     required this.id,
@@ -141,4 +141,3 @@ class Asset {
     );
   }
 }
-
