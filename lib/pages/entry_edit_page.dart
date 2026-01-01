@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -22,6 +23,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
   final _locationController = TextEditingController();
   final _dbService = DatabaseService();
   final _mediaService = MediaService();
+  final _scrollController = ScrollController();
 
   Mood? _selectedMood;
   bool _isSaving = false;
@@ -52,6 +54,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -276,8 +279,16 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 获取键盘高度
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    // 底部安全区高度
+    final bottomSafeArea = MediaQuery.of(context).padding.bottom;
+    // 工具栏高度
+    const toolbarHeight = 56.0;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
+      resizeToAvoidBottomInset: false, // 禁用自动调整，我们手动处理
       appBar: AppBar(
         backgroundColor: const Color(0xFFF2F2F7),
         elevation: 0,
@@ -313,129 +324,273 @@ class _EntryEditPageState extends State<EntryEditPage> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // 媒体区域
-            _buildMediaSection(),
-            const SizedBox(height: 16),
-            
-            // 标题输入
-            _buildSectionCard(
-              child: TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: '标题',
-                  hintStyle: TextStyle(
-                    color: Color(0xFFC7C7CC),
-                    fontSize: 17,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入标题';
-                  }
-                  return null;
-                },
+      body: Stack(
+        children: [
+          // 主内容区域
+          Form(
+            key: _formKey,
+            child: ListView(
+              controller: _scrollController,
+              // 底部留出工具栏 + 安全区的空间
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: toolbarHeight + bottomSafeArea + 16 + keyboardHeight,
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // 内容输入
-            _buildSectionCard(
-              child: TextFormField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  hintText: '写下你的想法...',
-                  hintStyle: TextStyle(
-                    color: Color(0xFFC7C7CC),
-                    fontSize: 16,
+              children: [
+                // 媒体区域
+                _buildMediaSection(),
+                const SizedBox(height: 16),
+                
+                // 标题输入
+                _buildSectionCard(
+                  child: TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: '标题',
+                      hintStyle: TextStyle(
+                        color: Color(0xFFC7C7CC),
+                        fontSize: 17,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '请输入标题';
+                      }
+                      return null;
+                    },
                   ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
                 ),
-                style: const TextStyle(fontSize: 16, height: 1.5),
-                maxLines: null,
-                minLines: 8,
-                keyboardType: TextInputType.multiline,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入内容';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // 心情选择
-            _buildSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '心情',
+                // 内容输入
+                _buildSectionCard(
+                  child: TextFormField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      hintText: '写下你的想法...',
+                      hintStyle: TextStyle(
+                        color: Color(0xFFC7C7CC),
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                    maxLines: null,
+                    minLines: 8,
+                    keyboardType: TextInputType.multiline,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '请输入内容';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 心情选择
+                _buildSectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '心情',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMoodSelector(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 地点输入
+                _buildSectionCard(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF8E8E93),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _locationController,
+                          decoration: const InputDecoration(
+                            hintText: '添加地点',
+                            hintStyle: TextStyle(
+                              color: Color(0xFFC7C7CC),
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // 提示文字
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    '支持 Markdown 格式编写内容',
                     style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFF8E8E93),
-                      fontWeight: FontWeight.w500,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
-                  _buildMoodSelector(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 地点输入
-            _buildSectionCard(
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    color: Color(0xFF8E8E93),
-                    size: 22,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _locationController,
-                      decoration: const InputDecoration(
-                        hintText: '添加地点',
-                        hintStyle: TextStyle(
-                          color: Color(0xFFC7C7CC),
-                          fontSize: 16,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // 提示文字
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '支持 Markdown 格式编写内容',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF8E8E93),
                 ),
-                textAlign: TextAlign.center,
+              ],
+            ),
+          ),
+          
+          // 底部浮动工具栏
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildStickyToolbar(
+              keyboardHeight: keyboardHeight,
+              bottomSafeArea: bottomSafeArea,
+              toolbarHeight: toolbarHeight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建底部浮动工具栏
+  Widget _buildStickyToolbar({
+    required double keyboardHeight,
+    required double bottomSafeArea,
+    required double toolbarHeight,
+  }) {
+    final hasKeyboard = keyboardHeight > 0;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      // 键盘弹起时跟随键盘上移
+      transform: Matrix4.translationValues(0, -keyboardHeight, 0),
+      child: ClipRect(
+        child: BackdropFilter(
+          // 高斯模糊效果
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              // 半透明背景 + 模糊效果
+              color: const Color(0xFFF2F2F7).withOpacity(0.9),
+              border: const Border(
+                top: BorderSide(
+                  color: Color(0xFFE5E5EA),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              // 键盘弹起时不需要底部安全区
+              bottom: !hasKeyboard,
+              child: Container(
+                height: toolbarHeight,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    // 图片按钮
+                    _buildToolbarButton(
+                      icon: Icons.image_outlined,
+                      label: '图片',
+                      onTap: _showMediaOptions,
+                    ),
+                    const SizedBox(width: 8),
+                    // 位置按钮
+                    _buildToolbarButton(
+                      icon: Icons.location_on_outlined,
+                      label: '位置',
+                      onTap: () {
+                        // TODO: 实现位置功能
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    // 心情按钮
+                    _buildToolbarButton(
+                      icon: Icons.mood_outlined,
+                      label: '心情',
+                      onTap: () {
+                        // TODO: 实现心情快捷选择功能
+                      },
+                    ),
+                    const Spacer(),
+                    // 收起键盘按钮（仅在键盘弹起时显示）
+                    if (hasKeyboard)
+                      _buildToolbarButton(
+                        icon: Icons.keyboard_hide_outlined,
+                        label: '收起',
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建工具栏按钮
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: const Color(0xFF007AFF),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF007AFF),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
