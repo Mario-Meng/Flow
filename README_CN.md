@@ -4,6 +4,13 @@
 
 一个美观且功能丰富的日记应用，使用 Flutter 构建。通过照片、视频、位置、心情和 Markdown 格式的文字，捕捉生活的每一刻。
 
+## 📱 应用截图
+
+<p align="center">
+  <img src="docs/images/screenshot1.png" width="300" alt="应用截图1"/>
+  <img src="docs/images/screenshot2.jpg" width="300" alt="应用截图2"/>
+</p>
+
 ## ✨ 功能特性
 
 ### 📝 丰富的内容形式

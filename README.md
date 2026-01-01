@@ -4,6 +4,13 @@ English | [中文文档](./README_CN.md)
 
 A beautiful and feature-rich journaling app built with Flutter. Capture life's moments with photos, videos, location, mood, and Markdown-formatted text.
 
+## 📱 Screenshots
+
+<p align="center">
+  <img src="docs/images/screenshot1.png" width="300" alt="Screenshot 1"/>
+  <img src="docs/images/screenshot2.jpg" width="300" alt="Screenshot 2"/>
+</p>
+
 ## ✨ Features
 
 ### 📝 Rich Content
