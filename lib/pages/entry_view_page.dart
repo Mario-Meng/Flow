@@ -54,10 +54,15 @@ class _EntryViewPageState extends State<EntryViewPage> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF007AFF)),
+          TextButton(
             onPressed: _enterEditMode,
-            tooltip: '编辑',
+            child: const Text(
+              '编辑',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
