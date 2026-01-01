@@ -35,7 +35,8 @@ class FlowApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
-      locale: const Locale('zh', 'CN'),
+      // Auto-detect system language, don't force locale
+      // locale: const Locale('zh', 'CN'),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF007AFF),
