@@ -90,6 +90,14 @@ class Entry {
   List<Asset> get imageAssets => 
       assets.where((a) => a.type == AssetType.image).toList();
 
+  /// 获取视频资源列表
+  List<Asset> get videoAssets => 
+      assets.where((a) => a.type == AssetType.video).toList();
+
+  /// 获取所有媒体资源（图片+视频）
+  List<Asset> get mediaAssets => 
+      assets.where((a) => a.type == AssetType.image || a.type == AssetType.video).toList();
+
   /// 复制并修改
   Entry copyWith({
     String? id,

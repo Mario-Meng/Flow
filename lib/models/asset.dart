@@ -97,7 +97,20 @@ class Asset {
   String get relativePath => 'assets/$fileName';
 
   /// 获取缩略图的相对路径
-  String get thumbnailPath => 'thumbnails/thumb_$fileName';
+  String get thumbnailPath {
+    // 视频缩略图使用 .jpg 扩展名
+    if (type == AssetType.video) {
+      final baseName = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+      return 'thumbnails/thumb_$baseName.jpg';
+    }
+    return 'thumbnails/thumb_$fileName';
+  }
+
+  /// 是否是视频
+  bool get isVideo => type == AssetType.video;
+
+  /// 是否是图片
+  bool get isImage => type == AssetType.image;
 
   /// 复制并修改
   Asset copyWith({

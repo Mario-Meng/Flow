@@ -21,14 +21,16 @@ class _EntryEditPageState extends State<EntryEditPage> {
   final _contentController = TextEditingController();
   final _locationController = TextEditingController();
   final _dbService = DatabaseService();
-  final _imageService = ImageService();
+  final _mediaService = MediaService();
 
   Mood? _selectedMood;
   bool _isSaving = false;
   
   // 已选择的图片
   List<XFile> _selectedImages = [];
-  // 已有的图片资源（编辑模式）
+  // 已选择的视频
+  List<XFile> _selectedVideos = [];
+  // 已有的媒体资源（编辑模式）
   List<Asset> _existingAssets = [];
 
   bool get isEditing => widget.entry != null;
@@ -41,7 +43,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       _contentController.text = widget.entry!.content;
       _locationController.text = widget.entry!.locationName ?? '';
       _selectedMood = widget.entry!.mood;
-      _existingAssets = List.from(widget.entry!.imageAssets);
+      _existingAssets = List.from(widget.entry!.mediaAssets);
     }
   }
 
@@ -55,7 +57,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   /// 选择图片
   Future<void> _pickImages() async {
-    final images = await _imageService.pickMultipleImages();
+    final images = await _mediaService.pickMultipleImages();
     if (images.isNotEmpty) {
       setState(() {
         _selectedImages.addAll(images);
@@ -65,10 +67,30 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   /// 拍照
   Future<void> _takePhoto() async {
-    final image = await _imageService.takePhoto();
+    final image = await _mediaService.takePhoto();
     if (image != null) {
       setState(() {
         _selectedImages.add(image);
+      });
+    }
+  }
+
+  /// 选择视频
+  Future<void> _pickVideo() async {
+    final video = await _mediaService.pickVideo();
+    if (video != null) {
+      setState(() {
+        _selectedVideos.add(video);
+      });
+    }
+  }
+
+  /// 录制视频
+  Future<void> _recordVideo() async {
+    final video = await _mediaService.recordVideo();
+    if (video != null) {
+      setState(() {
+        _selectedVideos.add(video);
       });
     }
   }
@@ -80,15 +102,22 @@ class _EntryEditPageState extends State<EntryEditPage> {
     });
   }
 
-  /// 移除已有的图片
+  /// 移除新选择的视频
+  void _removeSelectedVideo(int index) {
+    setState(() {
+      _selectedVideos.removeAt(index);
+    });
+  }
+
+  /// 移除已有的资源
   void _removeExistingAsset(int index) {
     setState(() {
       _existingAssets.removeAt(index);
     });
   }
 
-  /// 显示添加图片的选项
-  void _showImageOptions() {
+  /// 显示添加媒体的选项
+  void _showMediaOptions() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -107,9 +136,19 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '添加媒体',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('从相册选择'),
+              title: const Text('从相册选择图片'),
               onTap: () {
                 Navigator.pop(context);
                 _pickImages();
@@ -121,6 +160,23 @@ class _EntryEditPageState extends State<EntryEditPage> {
               onTap: () {
                 Navigator.pop(context);
                 _takePhoto();
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.video_library_outlined),
+              title: const Text('从相册选择视频'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickVideo();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('录制视频'),
+              onTap: () {
+                Navigator.pop(context);
+                _recordVideo();
               },
             ),
             const SizedBox(height: 8),
@@ -139,13 +195,31 @@ class _EntryEditPageState extends State<EntryEditPage> {
       final now = DateTime.now().millisecondsSinceEpoch;
       final entryId = isEditing ? widget.entry!.id : const Uuid().v4();
       
-      // 处理新选择的图片
       List<Asset> newAssets = [];
+      int sortOrder = _existingAssets.length;
+      
+      // 处理新选择的图片
       if (_selectedImages.isNotEmpty) {
-        newAssets = await _imageService.processAndSaveImages(
+        final imageAssets = await _mediaService.processAndSaveImages(
           images: _selectedImages,
           entryId: entryId,
+          startIndex: sortOrder,
         );
+        newAssets.addAll(imageAssets);
+        sortOrder += imageAssets.length;
+      }
+      
+      // 处理新选择的视频
+      for (final video in _selectedVideos) {
+        final videoAsset = await _mediaService.processAndSaveVideo(
+          video: video,
+          entryId: entryId,
+          sortOrder: sortOrder,
+        );
+        if (videoAsset != null) {
+          newAssets.add(videoAsset);
+          sortOrder++;
+        }
       }
       
       // 合并已有的和新的资源
@@ -167,13 +241,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
       if (isEditing) {
         await _dbService.updateEntry(entry);
         
-        // 删除移除的图片
-        final removedAssets = widget.entry!.imageAssets
+        // 删除移除的资源
+        final removedAssets = widget.entry!.mediaAssets
             .where((a) => !_existingAssets.any((e) => e.id == a.id))
             .toList();
         for (final asset in removedAssets) {
           await _dbService.deleteAsset(asset.id);
-          await _imageService.deleteImageFiles(asset);
+          await _mediaService.deleteMediaFiles(asset);
         }
       } else {
         await _dbService.insertEntry(entry);
@@ -244,8 +318,8 @@ class _EntryEditPageState extends State<EntryEditPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 图片区域
-            _buildImageSection(),
+            // 媒体区域
+            _buildMediaSection(),
             const SizedBox(height: 16),
             
             // 标题输入
@@ -370,9 +444,11 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 图片区域
-  Widget _buildImageSection() {
-    final hasImages = _existingAssets.isNotEmpty || _selectedImages.isNotEmpty;
+  /// 媒体区域
+  Widget _buildMediaSection() {
+    final hasMedia = _existingAssets.isNotEmpty || 
+                     _selectedImages.isNotEmpty || 
+                     _selectedVideos.isNotEmpty;
     
     return _buildSectionCard(
       child: Column(
@@ -382,7 +458,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '图片',
+                '图片/视频',
                 style: TextStyle(
                   fontSize: 13,
                   color: Color(0xFF8E8E93),
@@ -390,7 +466,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 ),
               ),
               GestureDetector(
-                onTap: _showImageOptions,
+                onTap: _showMediaOptions,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -420,24 +496,30 @@ class _EntryEditPageState extends State<EntryEditPage> {
               ),
             ],
           ),
-          if (hasImages) ...[
+          if (hasMedia) ...[
             const SizedBox(height: 12),
             SizedBox(
               height: 100,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  // 已有的图片
+                  // 已有的媒体资源
                   ..._existingAssets.asMap().entries.map((entry) {
                     final index = entry.key;
                     final asset = entry.value;
-                    return _buildExistingImageTile(asset, index);
+                    return _buildExistingAssetTile(asset, index);
                   }),
                   // 新选择的图片
                   ..._selectedImages.asMap().entries.map((entry) {
                     final index = entry.key;
                     final xFile = entry.value;
                     return _buildSelectedImageTile(xFile, index);
+                  }),
+                  // 新选择的视频
+                  ..._selectedVideos.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final xFile = entry.value;
+                    return _buildSelectedVideoTile(xFile, index);
                   }),
                 ],
               ),
@@ -449,13 +531,13 @@ class _EntryEditPageState extends State<EntryEditPage> {
                 child: Column(
                   children: [
                     Icon(
-                      Icons.image_outlined,
+                      Icons.perm_media_outlined,
                       size: 40,
                       color: Colors.grey[300],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '点击上方添加图片',
+                      '点击上方添加图片或视频',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey[400],
@@ -470,10 +552,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
     );
   }
 
-  /// 已有图片缩略图
-  Widget _buildExistingImageTile(Asset asset, int index) {
+  /// 已有资源缩略图
+  Widget _buildExistingAssetTile(Asset asset, int index) {
     return FutureBuilder<String>(
-      future: _imageService.getThumbnailPath(asset),
+      future: _mediaService.getThumbnailPath(asset),
       builder: (context, snapshot) {
         return Padding(
           padding: const EdgeInsets.only(right: 8),
@@ -499,6 +581,38 @@ class _EntryEditPageState extends State<EntryEditPage> {
                         ),
                 ),
               ),
+              // 视频标识
+              if (asset.isVideo)
+                Positioned(
+                  bottom: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.videocam,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 2),
+                        Text(
+                          '视频',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 4,
                 right: 4,
@@ -583,6 +697,82 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 新选择的视频缩略图
+  Widget _buildSelectedVideoTile(XFile xFile, int index) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 100,
+              height: 100,
+              color: const Color(0xFF2C2C2E),
+              child: const Center(
+                child: Icon(
+                  Icons.videocam,
+                  size: 32,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => _removeSelectedVideo(index),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          // 新视频标识
+          Positioned(
+            bottom: 4,
+            left: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF34C759),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.videocam,
+                    size: 10,
+                    color: Colors.white,
+                  ),
+                  SizedBox(width: 2),
+                  Text(
+                    '新',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

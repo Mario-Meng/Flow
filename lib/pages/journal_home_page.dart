@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'entry_edit_page.dart';
@@ -15,9 +17,13 @@ class JournalHomePage extends StatefulWidget {
 
 class _JournalHomePageState extends State<JournalHomePage> {
   final _dbService = DatabaseService();
-  final _imageService = ImageService();
+  final _mediaService = MediaService();
   List<Entry> _entries = [];
   bool _isLoading = true;
+  
+  // 全局唯一的视频控制器
+  VideoPlayerController? _globalVideoController;
+  String? _currentVideoAssetId;
 
   @override
   void initState() {
@@ -25,17 +31,44 @@ class _JournalHomePageState extends State<JournalHomePage> {
     _loadEntries();
   }
 
+  @override
+  void dispose() {
+    _disposeGlobalVideoController();
+    super.dispose();
+  }
+
+  void _disposeGlobalVideoController() {
+    if (_globalVideoController != null) {
+      try {
+        if (_globalVideoController!.value.isInitialized) {
+          _globalVideoController!.pause();
+        }
+        _globalVideoController!.dispose();
+      } catch (e) {
+        debugPrint('释放视频控制器失败: $e');
+      }
+      _globalVideoController = null;
+      _currentVideoAssetId = null;
+    }
+  }
+
   Future<void> _loadEntries() async {
     setState(() => _isLoading = true);
+    
+    // 清理旧的视频控制器
+    _disposeGlobalVideoController();
+    
     try {
       final entries = await _dbService.getEntries();
-      setState(() {
-        _entries = entries;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
+        setState(() {
+          _entries = entries;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('加载失败: $e')),
         );
@@ -79,6 +112,53 @@ class _JournalHomePageState extends State<JournalHomePage> {
       await _dbService.deleteEntry(entry.id);
       _loadEntries();
     }
+  }
+
+  Future<void> _switchVideo(String assetId, String videoPath) async {
+    // 如果是要播放的视频已经是当前播放的，不切换
+    if (_currentVideoAssetId == assetId && _globalVideoController != null) {
+      return;
+    }
+
+    // 暂停并释放当前视频
+    _disposeGlobalVideoController();
+
+    // 初始化新视频
+    try {
+      _globalVideoController = VideoPlayerController.file(File(videoPath));
+      await _globalVideoController!.initialize();
+      _globalVideoController!.setLooping(true);
+      _globalVideoController!.setVolume(0.0); // 静音播放
+      
+      if (mounted) {
+        setState(() {
+          _currentVideoAssetId = assetId;
+        });
+        _globalVideoController!.play();
+      }
+    } catch (e) {
+      debugPrint('切换视频失败: $e');
+      _disposeGlobalVideoController();
+    }
+  }
+
+  void _pauseCurrentVideo() {
+    if (_globalVideoController != null && 
+        _globalVideoController!.value.isInitialized &&
+        _globalVideoController!.value.isPlaying) {
+      try {
+        _globalVideoController!.pause();
+      } catch (e) {
+        debugPrint('暂停视频失败: $e');
+      }
+    }
+  }
+
+  VideoPlayerController? _getVideoController(String assetId) {
+    if (_currentVideoAssetId == assetId && _globalVideoController != null) {
+      return _globalVideoController;
+    }
+    return null;
   }
 
   @override
@@ -142,7 +222,11 @@ class _JournalHomePageState extends State<JournalHomePage> {
                             padding: const EdgeInsets.only(bottom: 16),
                             child: JournalCard(
                               entry: _entries[index],
-                              imageService: _imageService,
+                              mediaService: _mediaService,
+                              currentVideoAssetId: _currentVideoAssetId,
+                              getVideoController: _getVideoController,
+                              onVideoVisibilityChanged: _switchVideo,
+                              onVideoVisibilityLost: _pauseCurrentVideo,
                               onTap: () => _openEditPage(_entries[index]),
                               onDelete: () => _deleteEntry(_entries[index]),
                             ),
@@ -233,25 +317,36 @@ class _JournalHomePageState extends State<JournalHomePage> {
 }
 
 /// 日记卡片组件
-class JournalCard extends StatelessWidget {
+class JournalCard extends StatefulWidget {
   final Entry entry;
-  final ImageService imageService;
+  final MediaService mediaService;
+  final String? currentVideoAssetId;
+  final VideoPlayerController? Function(String assetId) getVideoController;
+  final Function(String assetId, String videoPath) onVideoVisibilityChanged;
+  final VoidCallback onVideoVisibilityLost;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
   const JournalCard({
     super.key,
     required this.entry,
-    required this.imageService,
+    required this.mediaService,
+    required this.currentVideoAssetId,
+    required this.getVideoController,
+    required this.onVideoVisibilityChanged,
+    required this.onVideoVisibilityLost,
     this.onTap,
     this.onDelete,
   });
 
   @override
+  State<JournalCard> createState() => _JournalCardState();
+}
+
+class _JournalCardState extends State<JournalCard> {
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -266,133 +361,144 @@ class JournalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 图片区域（如果有图片资源）
-            if (entry.imageAssets.isNotEmpty)
+            // 媒体区域（如果有图片或视频资源）
+            if (widget.entry.mediaAssets.isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: _buildImageLayout(),
+                child: _buildMediaLayout(),
               ),
-            // 内容区域
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 心情和地点标签
-                  if (entry.mood != null || entry.locationName != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (entry.mood != null) _buildMoodTag(entry.mood!),
-                          if (entry.locationName != null)
-                            _buildLocationTag(entry.locationName!),
-                        ],
-                      ),
-                    ),
-                  // 标题
-                  Text(
-                    entry.title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 内容摘要
-                  Text(
-                    entry.contentSummary,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.black.withOpacity(0.85),
-                      height: 1.4,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-                  // 分隔线
-                  Container(
-                    height: 0.5,
-                    color: const Color(0xFFE5E5EA),
-                  ),
-                  const SizedBox(height: 12),
-                  // 日期和更多按钮
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _formatDate(entry.createdDateTime),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF8E8E93),
-                          fontWeight: FontWeight.w400,
+            // 内容区域（可点击进入编辑页面）
+            GestureDetector(
+              onTap: widget.onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 心情和地点标签
+                    if (widget.entry.mood != null || widget.entry.locationName != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (widget.entry.mood != null) _buildMoodTag(widget.entry.mood!),
+                            if (widget.entry.locationName != null)
+                              _buildLocationTag(widget.entry.locationName!),
+                          ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => _showMoreOptions(context),
-                        child: const Icon(
-                          Icons.more_horiz,
-                          color: Color(0xFF8E8E93),
-                          size: 20,
-                        ),
+                    // 标题
+                    Text(
+                      widget.entry.title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                        height: 1.3,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+                    // 内容摘要
+                    Text(
+                      widget.entry.contentSummary,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.black.withOpacity(0.85),
+                        height: 1.4,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    // 分隔线
+                    Container(
+                      height: 0.5,
+                      color: const Color(0xFFE5E5EA),
+                    ),
+                    const SizedBox(height: 12),
+                    // 日期和更多按钮
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDate(widget.entry.createdDateTime),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF8E8E93),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _showMoreOptions(context),
+                          child: const Icon(
+                            Icons.more_horiz,
+                            color: Color(0xFF8E8E93),
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-      ),
     );
   }
 
-  Widget _buildImageLayout() {
-    final images = entry.imageAssets;
-    if (images.isEmpty) return const SizedBox.shrink();
+  Widget _buildMediaLayout() {
+    final media = widget.entry.mediaAssets;
+    if (media.isEmpty) return const SizedBox.shrink();
 
-    final count = images.length;
+    // 找到第一个视频的索引
+    int? firstVideoIndex;
+    for (int i = 0; i < media.length; i++) {
+      if (media[i].isVideo) {
+        firstVideoIndex = i;
+        break;
+      }
+    }
+
+    final count = media.length;
     
     if (count == 1) {
-      // 单图模式
+      // 单媒体模式
       return SizedBox(
         height: 200,
         width: double.infinity,
-        child: _buildImageTile(images[0]),
+        child: _buildMediaTile(media[0], 0, firstVideoIndex),
       );
     } else if (count == 2) {
-      // 双图模式：左右并列
+      // 双媒体模式：左右并列
       return SizedBox(
         height: 160,
         child: Row(
           children: [
-            Expanded(child: _buildImageTile(images[0])),
+            Expanded(child: _buildMediaTile(media[0], 0, firstVideoIndex)),
             const SizedBox(width: 2),
-            Expanded(child: _buildImageTile(images[1])),
+            Expanded(child: _buildMediaTile(media[1], 1, firstVideoIndex)),
           ],
         ),
       );
     } else if (count == 3) {
-      // 三图模式：左边大图，右边两小图
+      // 三媒体模式：左边大图，右边两小图
       return SizedBox(
         height: 180,
         child: Row(
           children: [
-            Expanded(flex: 2, child: _buildImageTile(images[0])),
+            Expanded(flex: 2, child: _buildMediaTile(media[0], 0, firstVideoIndex)),
             const SizedBox(width: 2),
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildImageTile(images[1])),
+                  Expanded(child: _buildMediaTile(media[1], 1, firstVideoIndex)),
                   const SizedBox(height: 2),
-                  Expanded(child: _buildImageTile(images[2])),
+                  Expanded(child: _buildMediaTile(media[2], 2, firstVideoIndex)),
                 ],
               ),
             ),
@@ -400,7 +506,7 @@ class JournalCard extends StatelessWidget {
         ),
       );
     } else {
-      // 四图及以上：2x2 网格，显示数量
+      // 四媒体及以上：2x2 网格，显示数量
       return SizedBox(
         height: 180,
         child: Row(
@@ -408,9 +514,9 @@ class JournalCard extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildImageTile(images[0])),
+                  Expanded(child: _buildMediaTile(media[0], 0, firstVideoIndex)),
                   const SizedBox(height: 2),
-                  Expanded(child: _buildImageTile(images[2])),
+                  Expanded(child: _buildMediaTile(media[2], 2, firstVideoIndex)),
                 ],
               ),
             ),
@@ -418,13 +524,13 @@ class JournalCard extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _buildImageTile(images[1])),
+                  Expanded(child: _buildMediaTile(media[1], 1, firstVideoIndex)),
                   const SizedBox(height: 2),
                   Expanded(
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        _buildImageTile(images[3]),
+                        _buildMediaTile(media[3], 3, firstVideoIndex),
                         if (count > 4)
                           Container(
                             color: Colors.black.withOpacity(0.5),
@@ -451,9 +557,34 @@ class JournalCard extends StatelessWidget {
     }
   }
 
-  Widget _buildImageTile(Asset asset) {
+  Widget _buildMediaTile(Asset asset, int index, int? firstVideoIndex) {
+    // 如果是视频
+    if (asset.isVideo) {
+      // 只有第一个视频使用 VideoTile 播放，其他显示缩略图
+      if (index == firstVideoIndex) {
+        return GestureDetector(
+          onTap: () => _playVideo(asset),
+          child: VideoTile(
+            asset: asset,
+            mediaService: widget.mediaService,
+            currentVideoAssetId: widget.currentVideoAssetId,
+            getVideoController: widget.getVideoController,
+            onVisibilityChanged: widget.onVideoVisibilityChanged,
+            onVisibilityLost: widget.onVideoVisibilityLost,
+          ),
+        );
+      } else {
+        // 其他视频显示缩略图，点击跳转到播放页面
+        return GestureDetector(
+          onTap: () => _playVideo(asset),
+          child: _buildVideoThumbnail(asset),
+        );
+      }
+    }
+    
+    // 图片使用缩略图
     return FutureBuilder<String>(
-      future: imageService.getThumbnailPath(asset),
+      future: widget.mediaService.getThumbnailPath(asset),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final file = File(snapshot.data!);
@@ -462,21 +593,89 @@ class JournalCard extends StatelessWidget {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-            errorBuilder: (_, __, ___) => _buildPlaceholder(),
+            errorBuilder: (_, __, ___) => _buildPlaceholder(false),
           );
         }
-        return _buildPlaceholder();
+        return _buildPlaceholder(false);
       },
     );
   }
 
-  Widget _buildPlaceholder() {
+  Future<void> _playVideo(Asset asset) async {
+    final videoPath = await widget.mediaService.getOriginalPath(asset);
+    if (!mounted) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerPage(videoPath: videoPath),
+      ),
+    );
+  }
+
+  Widget _buildVideoThumbnail(Asset asset) {
+    return FutureBuilder<String>(
+      future: widget.mediaService.getThumbnailPath(asset),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final file = File(snapshot.data!);
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.file(
+                file,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (_, __, ___) => _buildPlaceholder(true),
+              ),
+              // 时长显示在右下角
+              if (asset.duration != null)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _formatVideoDuration(asset.duration!),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
+        return _buildPlaceholder(true);
+      },
+    );
+  }
+
+  String _formatVideoDuration(int durationMs) {
+    final duration = Duration(milliseconds: durationMs);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    
+    if (minutes > 0) {
+      return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      return '0:${seconds.toString().padLeft(2, '0')}';
+    }
+  }
+
+  Widget _buildPlaceholder(bool isVideo) {
     return Container(
-      color: const Color(0xFFE5E5EA),
-      child: const Center(
+      color: isVideo ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA),
+      child: Center(
         child: Icon(
-          Icons.image_outlined,
-          color: Color(0xFF8E8E93),
+          isVideo ? Icons.videocam : Icons.image_outlined,
+          color: isVideo ? Colors.white54 : const Color(0xFF8E8E93),
           size: 24,
         ),
       ),
@@ -576,7 +775,7 @@ class JournalCard extends StatelessWidget {
               title: const Text('编辑'),
               onTap: () {
                 Navigator.of(context).pop();
-                onTap?.call();
+                widget.onTap?.call();
               },
             ),
             ListTile(
@@ -584,7 +783,7 @@ class JournalCard extends StatelessWidget {
               title: const Text('删除', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.of(context).pop();
-                onDelete?.call();
+                widget.onDelete?.call();
               },
             ),
             const SizedBox(height: 8),
@@ -595,3 +794,368 @@ class JournalCard extends StatelessWidget {
   }
 }
 
+/// 视频播放组件（自动播放，全局唯一实例）
+class VideoTile extends StatefulWidget {
+  final Asset asset;
+  final MediaService mediaService;
+  final String? currentVideoAssetId;
+  final VideoPlayerController? Function(String assetId) getVideoController;
+  final Function(String assetId, String videoPath) onVisibilityChanged;
+  final VoidCallback onVisibilityLost;
+
+  const VideoTile({
+    super.key,
+    required this.asset,
+    required this.mediaService,
+    required this.currentVideoAssetId,
+    required this.getVideoController,
+    required this.onVisibilityChanged,
+    required this.onVisibilityLost,
+  });
+
+  @override
+  State<VideoTile> createState() => _VideoTileState();
+}
+
+class _VideoTileState extends State<VideoTile> {
+  bool _isVisible = false;
+  String? _videoPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVideoPath();
+  }
+
+  Future<void> _loadVideoPath() async {
+    try {
+      _videoPath = await widget.mediaService.getOriginalPath(widget.asset);
+    } catch (e) {
+      debugPrint('获取视频路径失败: $e');
+    }
+  }
+
+  void _onVisibilityChanged(VisibilityInfo info) {
+    final isVisible = info.visibleFraction > 0.5; // 超过50%可见时播放
+    
+    if (_isVisible != isVisible && _videoPath != null) {
+      _isVisible = isVisible;
+      
+      if (isVisible) {
+        widget.onVisibilityChanged(widget.asset.id, _videoPath!);
+      } else {
+        widget.onVisibilityLost();
+      }
+    }
+  }
+
+  Future<void> _playVideo() async {
+    if (_videoPath == null) {
+      _videoPath = await widget.mediaService.getOriginalPath(widget.asset);
+    }
+    if (!mounted || _videoPath == null) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerPage(videoPath: _videoPath!),
+      ),
+    );
+  }
+
+  String _formatVideoDuration(int durationMs) {
+    final duration = Duration(milliseconds: durationMs);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    
+    if (minutes > 0) {
+      return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      return '0:${seconds.toString().padLeft(2, '0')}';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.getVideoController(widget.asset.id);
+    final isCurrentVideo = widget.currentVideoAssetId == widget.asset.id;
+    
+    return GestureDetector(
+      onTap: _playVideo,
+      child: VisibilityDetector(
+        key: Key('video_${widget.asset.id}'),
+        onVisibilityChanged: _onVisibilityChanged,
+        child: Container(
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              isCurrentVideo && 
+              controller != null && 
+              controller.value.isInitialized
+                  ? AspectRatio(
+                      aspectRatio: controller.value.aspectRatio,
+                      child: VideoPlayer(controller),
+                    )
+                  : FutureBuilder<String>(
+                      future: widget.mediaService.getThumbnailPath(widget.asset),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          final file = File(snapshot.data!);
+                          return Image.file(
+                            file,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white54,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white54,
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
+                    ),
+              // 时长显示在右下角
+              if (widget.asset.duration != null)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _formatVideoDuration(widget.asset.duration!),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 视频播放页面（全屏）
+class VideoPlayerPage extends StatefulWidget {
+  final String videoPath;
+
+  const VideoPlayerPage({super.key, required this.videoPath});
+
+  @override
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    try {
+      _controller = VideoPlayerController.file(File(widget.videoPath));
+      await _controller.initialize();
+      _controller.addListener(_videoListener);
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+        _controller.play();
+      }
+    } catch (e) {
+      debugPrint('全屏视频初始化失败: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('视频加载失败')),
+        );
+      }
+    }
+  }
+
+  void _videoListener() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_videoListener);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _togglePlayPause() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+    } else {
+      _controller.play();
+    }
+  }
+
+  void _toggleControls() {
+    setState(() {
+      _showControls = !_showControls;
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 视频播放器
+            GestureDetector(
+              onTap: _toggleControls,
+              child: Center(
+                child: _isInitialized
+                    ? AspectRatio(
+                        aspectRatio: _controller.value.aspectRatio,
+                        child: VideoPlayer(_controller),
+                      )
+                    : const CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+              ),
+            ),
+            // 控制层
+            if (_showControls) ...[
+              // 顶部栏
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.7),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              // 中间播放按钮
+              Center(
+                child: GestureDetector(
+                  onTap: _togglePlayPause,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.black87,
+                      size: 40,
+                    ),
+                  ),
+                ),
+              ),
+              // 底部进度条
+              if (_isInitialized)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.7),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        VideoProgressIndicator(
+                          _controller,
+                          allowScrubbing: true,
+                          colors: const VideoProgressColors(
+                            playedColor: Color(0xFF007AFF),
+                            bufferedColor: Colors.white24,
+                            backgroundColor: Colors.white12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDuration(_controller.value.position),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              _formatDuration(_controller.value.duration),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
