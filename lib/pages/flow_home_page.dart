@@ -240,19 +240,20 @@ class _FlowHomePageState extends State<FlowHomePage> {
                             ),
                           ],
                         ),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE5E5EA),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.filter_list_rounded,
-                            size: 20,
-                            color: Color(0xFF8E8E93),
-                          ),
-                        ),
+                        // TODO: Replace with search button in the future
+                        // Container(
+                        //   width: 32,
+                        //   height: 32,
+                        //   decoration: BoxDecoration(
+                        //     color: const Color(0xFFE5E5EA),
+                        //     borderRadius: BorderRadius.circular(8),
+                        //   ),
+                        //   child: const Icon(
+                        //     Icons.filter_list_rounded,
+                        //     size: 20,
+                        //     color: Color(0xFF8E8E93),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
