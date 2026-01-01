@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 
@@ -47,6 +48,9 @@ class _EntryEditPageState extends State<EntryEditPage> {
   List<BusinessArea> _nearbyPlaces = [];
   bool _hasLocationPermission = false;
   
+  // 创建时间（可修改）
+  int? _customCreatedAt;
+  
   // 已选择的图片
   List<XFile> _selectedImages = [];
   // 已选择的视频
@@ -71,6 +75,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
       _locationController.text = widget.entry!.locationName ?? '';
       _selectedMood = widget.entry!.mood;
       _existingAssets = List.from(widget.entry!.mediaAssets);
+      _customCreatedAt = widget.entry!.createdAt;
     }
   }
 
@@ -262,7 +267,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
         locationName: _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
-        createdAt: isEditing ? widget.entry!.createdAt : now,
+        createdAt: isEditing ? (_customCreatedAt ?? widget.entry!.createdAt) : now,
         updatedAt: now,
         assets: allAssets,
       );
@@ -427,6 +432,14 @@ class _EntryEditPageState extends State<EntryEditPage> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '支持 Markdown 格式',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFC7C7CC),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -438,18 +451,46 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
                 const SizedBox(height: 16),
 
-                // 提示文字
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '支持 Markdown 格式编写内容',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF8E8E93),
+                // 时间信息
+                if (isEditing)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      children: [
+                        // 创建时间（可编辑）
+                        GestureDetector(
+                          onTap: _showDateTimePicker,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '创建: ${_formatDateTime(DateTime.fromMillisecondsSinceEpoch(_customCreatedAt!))}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF8E8E93),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.edit_calendar_outlined,
+                                size: 16,
+                                color: Color(0xFF007AFF),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '更新: ${_formatDateTime(widget.entry!.updatedDateTime)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8E8E93),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
               ],
             ),
           ),
@@ -1358,6 +1399,86 @@ class _EntryEditPageState extends State<EntryEditPage> {
       ),
       child: child,
     );
+  }
+
+  /// 显示日期时间选择器
+  Future<void> _showDateTimePicker() async {
+    final entry = widget.entry;
+    if (entry == null) return;
+    
+    // 1. 选择日期
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: entry.createdDateTime,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(), // 不能超过当前时间
+      locale: const Locale('zh', 'CN'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF007AFF),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (pickedDate == null || !mounted) return;
+    
+    // 2. 选择时间
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(entry.createdDateTime),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF007AFF),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (pickedTime == null || !mounted) return;
+    
+    // 3. 合并日期和时间
+    final newDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    
+    // 4. 检查是否超过当前时间
+    if (newDateTime.isAfter(DateTime.now())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('创建时间不能超过当前时间')),
+        );
+      }
+      return;
+    }
+    
+    // 5. 更新本地状态
+    setState(() {
+      _customCreatedAt = newDateTime.millisecondsSinceEpoch;
+    });
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('创建时间已修改，保存后生效')),
+      );
+    }
+  }
+
+  /// 格式化日期时间
+  String _formatDateTime(DateTime dateTime) {
+    return DateFormat('yyyy年M月d日 HH:mm', 'zh_CN').format(dateTime);
   }
 
   Widget _buildMoodSelector() {

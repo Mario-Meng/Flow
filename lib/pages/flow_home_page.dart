@@ -7,6 +7,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'entry_edit_page.dart';
+import 'entry_view_page.dart';
 
 /// Flow 主页
 class FlowHomePage extends StatefulWidget {
@@ -94,6 +95,20 @@ class _FlowHomePageState extends State<FlowHomePage> {
     _loadEntries();
   }
 
+  /// 打开查看页面
+  Future<void> _openViewPage(Entry entry) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EntryViewPage(entry: entry),
+      ),
+    );
+
+    if (result == true) {
+      _loadEntries();
+    }
+  }
+
+  /// 打开编辑页面
   Future<void> _openEditPage([Entry? entry]) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -266,32 +281,35 @@ class _FlowHomePageState extends State<FlowHomePage> {
                               key: ValueKey(_entries[index].id),
                               endActionPane: ActionPane(
                                 motion: const StretchMotion(),
-                                extentRatio: 0.25,
+                                extentRatio: 0.55,
                                 children: [
                                   CustomSlidableAction(
                                     onPressed: (_) => _toggleFavorite(_entries[index]),
                                     backgroundColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        _buildCircleActionButton(
-                                          icon: _entries[index].isFavorite 
-                                              ? Icons.star_rounded 
-                                              : Icons.star_border_rounded,
-                                          color: const Color(0xFFFFCC00),
-                                        ),
-                                        _buildCircleActionButton(
-                                          icon: Icons.edit_rounded,
-                                          color: const Color(0xFF007AFF),
-                                          onTap: () => _openEditPage(_entries[index]),
-                                        ),
-                                        _buildCircleActionButton(
-                                          icon: Icons.delete_rounded,
-                                          color: const Color(0xFFFF3B30),
-                                          onTap: () => _deleteEntry(_entries[index]),
-                                        ),
-                                      ],
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: _buildCircleActionButton(
+                                      icon: _entries[index].isFavorite 
+                                          ? Icons.star_rounded 
+                                          : Icons.star_border_rounded,
+                                      color: const Color(0xFFFFCC00),
+                                    ),
+                                  ),
+                                  CustomSlidableAction(
+                                    onPressed: (_) => _openEditPage(_entries[index]),
+                                    backgroundColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: _buildCircleActionButton(
+                                      icon: Icons.edit_rounded,
+                                      color: const Color(0xFF007AFF),
+                                    ),
+                                  ),
+                                  CustomSlidableAction(
+                                    onPressed: (_) => _deleteEntry(_entries[index]),
+                                    backgroundColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: _buildCircleActionButton(
+                                      icon: Icons.delete_rounded,
+                                      color: const Color(0xFFFF3B30),
                                     ),
                                   ),
                                 ],
@@ -303,7 +321,7 @@ class _FlowHomePageState extends State<FlowHomePage> {
                                 getVideoController: _getVideoController,
                                 onVideoVisibilityChanged: _switchVideo,
                                 onVideoVisibilityLost: _pauseCurrentVideo,
-                                onTap: () => _openEditPage(_entries[index]),
+                                onTap: () => _openViewPage(_entries[index]),
                               ),
                             ),
                           );
@@ -1016,10 +1034,16 @@ class _FlowCardState extends State<FlowCard> {
       return '今天';
     } else if (diff == 1) {
       return '昨天';
+    } else if (diff == 2) {
+      return '前天';
     } else if (diff < 7) {
       return DateFormat('EEEE', 'zh_CN').format(date);
+    } else if (date.year == now.year) {
+      // 同一年，只显示月日
+      return DateFormat('M月d日', 'zh_CN').format(date);
     } else {
-      return DateFormat('M月d日, yyyy').format(date);
+      // 不同年，显示年月日
+      return DateFormat('yyyy年M月d日', 'zh_CN').format(date);
     }
   }
 
