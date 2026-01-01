@@ -359,10 +359,10 @@ class _EntryEditPageState extends State<EntryEditPage> {
               controller: _scrollController,
               // 底部留出工具栏 + 安全区的空间
               padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: toolbarHeight + bottomSafeArea + 16 + keyboardHeight,
+                left: 12,
+                right: 12,
+                top: 12,
+                bottom: toolbarHeight + bottomSafeArea + 12 + keyboardHeight,
               ),
               children: [
                 // 媒体区域（仅在有媒体时显示）
@@ -371,59 +371,66 @@ class _EntryEditPageState extends State<EntryEditPage> {
                   const SizedBox(height: 16),
                 ],
                 
-                // 标题输入
+                // 标题和内容合并到一个卡片
                 _buildSectionCard(
-                  child: TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      hintText: '标题',
-                      hintStyle: TextStyle(
-                        color: Color(0xFFC7C7CC),
-                        fontSize: 17,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 标题输入
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          hintText: '标题',
+                          hintStyle: TextStyle(
+                            color: Color(0xFFC7C7CC),
+                            fontSize: 17,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    // 标题为可选字段，不做必填验证
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 0.5,
+                        color: const Color(0xFFE5E5EA),
+                      ),
+                      const SizedBox(height: 12),
+                      // 内容输入
+                      TextFormField(
+                        controller: _contentController,
+                        decoration: const InputDecoration(
+                          hintText: '开始记录...',
+                          hintStyle: TextStyle(
+                            color: Color(0xFFC7C7CC),
+                            fontSize: 16,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(fontSize: 16, height: 1.5),
+                        maxLines: null,
+                        minLines: 10,
+                        keyboardType: TextInputType.multiline,
+                        validator: (value) {
+                          // 如果有媒体资源或标题，内容可以为空
+                          if (_hasMedia || _titleController.text.trim().isNotEmpty) {
+                            return null;
+                          }
+                          // 没有媒体资源且没有标题时，内容必填
+                          if (value == null || value.trim().isEmpty) {
+                            return '请至少添加图片/视频、标题或内容';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // 内容输入
-                _buildSectionCard(
-                  child: TextFormField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      hintText: '写下你的想法...',
-                      hintStyle: TextStyle(
-                        color: Color(0xFFC7C7CC),
-                        fontSize: 16,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                    maxLines: null,
-                    minLines: 8,
-                    keyboardType: TextInputType.multiline,
-                    validator: (value) {
-                      // 如果有媒体资源或标题，内容可以为空
-                      if (_hasMedia || _titleController.text.trim().isNotEmpty) {
-                        return null;
-                      }
-                      // 没有媒体资源且没有标题时，内容必填
-                      if (value == null || value.trim().isEmpty) {
-                        return '请至少添加图片/视频、标题或内容';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 
                 // 已选择的心情和位置显示
                 if (_selectedMood != null || _locationController.text.isNotEmpty)
@@ -1344,7 +1351,7 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   Widget _buildSectionCard({required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
