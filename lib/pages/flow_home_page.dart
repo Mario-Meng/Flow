@@ -1156,9 +1156,13 @@ class _VideoTileState extends State<VideoTile> {
               isCurrentVideo && 
               controller != null && 
               controller.value.isInitialized
-                  ? AspectRatio(
-                      aspectRatio: controller.value.aspectRatio,
-                      child: VideoPlayer(controller),
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller.value.size.width,
+                        height: controller.value.size.height,
+                        child: VideoPlayer(controller),
+                      ),
                     )
                   : FutureBuilder<String>(
                       future: widget.mediaService.getThumbnailPath(widget.asset),
