@@ -21,9 +21,11 @@ class FlowHomePage extends StatefulWidget {
 class _FlowHomePageState extends State<FlowHomePage> {
   final _dbService = DatabaseService();
   final _mediaService = MediaService();
+  final _syncService = SyncService();
   List<Entry> _entries = [];
   bool _isLoading = true;
   bool _showOnlyFavorites = false; // Show only favorites
+  bool _isSyncing = false; // Sync status
 
   // Global unique video controller
   VideoPlayerController? _globalVideoController;
@@ -94,6 +96,105 @@ class _FlowHomePageState extends State<FlowHomePage> {
       _showOnlyFavorites = !_showOnlyFavorites;
     });
     _loadEntries();
+  }
+
+  /// Perform data sync
+  Future<void> _performSync() async {
+    if (_isSyncing) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('同步正在进行中...')),
+      );
+      return;
+    }
+
+    setState(() => _isSyncing = true);
+
+    try {
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('正在同步数据...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Perform sync
+      final result = await _syncService.fullSync();
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show result
+      if (mounted) {
+        final message = StringBuffer('同步完成!\n');
+        if (result.uploadBytes > 0) {
+          message.write('上传: ${_formatBytes(result.uploadBytes)}\n');
+        }
+        if (result.downloadBytes > 0) {
+          message.write('下载: ${_formatBytes(result.downloadBytes)}');
+        }
+        if (result.uploadBytes == 0 && result.downloadBytes == 0) {
+          message.write('数据已是最新');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message.toString()),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // Refresh data after sync
+        _loadEntries();
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('同步失败: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
+  /// Format bytes to human-readable string
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)}KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)}MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)}GB';
   }
 
   /// 打开查看页面
@@ -500,6 +601,30 @@ class _FlowHomePageState extends State<FlowHomePage> {
                     onTap: () {
                       Navigator.pop(context);
                       // TODO: 跳转到设置页面
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.cloud_sync_outlined,
+                      color: _isSyncing ? Colors.blue : null,
+                    ),
+                    title: Text(
+                      _isSyncing ? '同步中...' : '云端同步',
+                      style: TextStyle(
+                        color: _isSyncing ? Colors.blue : null,
+                      ),
+                    ),
+                    trailing: _isSyncing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
+                    enabled: !_isSyncing,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _performSync();
                     },
                   ),
                   ListTile(
