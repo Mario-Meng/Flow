@@ -1,0 +1,3 @@
+[submodule "packages/dart_cdc_sync"]
+	path = packages/dart_cdc_sync
+	url = git@github.com:mario-meng/dart-cdc-sync.git

@@ -64,6 +64,10 @@ dependencies:
   
   # Markdown 渲染
   markdown_widget: ^2.3.2+6
+  
+  # 数据同步
+  dart_cdc_sync:
+    path: packages/dart_cdc_sync
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +79,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+dependency_overrides:
+  # Override to resolve version conflict with dart_cdc_sync dependencies
+  intl: ^0.19.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

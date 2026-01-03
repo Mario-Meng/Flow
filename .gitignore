@@ -49,3 +49,7 @@ lib/config.dart
 
 # Cursor 规则文件（本地保留，不提交）
 .cursorrules
+
+# 测试文件（不提交）
+test_cdc_sync.dart
+test_*.dart
