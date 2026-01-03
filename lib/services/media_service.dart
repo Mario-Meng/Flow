@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -22,6 +21,9 @@ class MediaService {
 
   /// 缩略图最大尺寸（提高质量）
   static const int thumbnailMaxSize = 600;
+
+  /// Check if camera is supported on current platform
+  bool get isCameraSupported => !Platform.isMacOS;
 
   /// 从相册选择多张图片
   Future<List<XFile>> pickMultipleImages() async {
@@ -69,8 +71,13 @@ class MediaService {
     return xFiles;
   }
 
-  /// 拍照
+  /// Take photo using camera (not supported on macOS)
   Future<XFile?> takePhoto() async {
+    // Camera is not supported on macOS
+    if (Platform.isMacOS) {
+      return null;
+    }
+    
     final image = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 85,
@@ -80,11 +87,12 @@ class MediaService {
     return image;
   }
 
-  /// 从相册选择视频
+  /// Select single video from gallery
   Future<XFile?> pickVideo() async {
     // On macOS, use file picker instead of image picker
     if (Platform.isMacOS) {
-      return await _pickVideoFromFileSystem();
+      final videos = await _pickVideosFromFileSystem(allowMultiple: false);
+      return videos.isNotEmpty ? videos.first : null;
     } else {
       final video = await _picker.pickVideo(
         source: ImageSource.gallery,
@@ -94,36 +102,60 @@ class MediaService {
     }
   }
 
-  /// Pick video from file system (for macOS)
-  Future<XFile?> _pickVideoFromFileSystem() async {
+  /// Select multiple videos from gallery
+  Future<List<XFile>> pickMultipleVideos() async {
+    // On macOS, use file picker instead of image picker
+    if (Platform.isMacOS) {
+      return await _pickVideosFromFileSystem(allowMultiple: true);
+    } else {
+      // For mobile platforms, pick one by one manually or use a different plugin
+      // For now, only support single video on mobile
+      final video = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 10),
+      );
+      return video != null ? [video] : [];
+    }
+  }
+
+  /// Pick videos from file system (for macOS)
+  Future<List<XFile>> _pickVideosFromFileSystem({required bool allowMultiple}) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.video,
-      allowMultiple: false,
+      allowMultiple: allowMultiple,
     );
 
     if (result == null || result.files.isEmpty) {
-      return null;
+      return [];
     }
 
-    final platformFile = result.files.first;
-    if (platformFile.path != null) {
-      return XFile(platformFile.path!);
-    } else if (platformFile.bytes != null) {
-      // If path is null but bytes are available, create a temporary file
-      final tempDir = Directory.systemTemp;
-      final tempFile = File(join(
-        tempDir.path,
-        'temp_${DateTime.now().millisecondsSinceEpoch}_${platformFile.name}',
-      ));
-      await tempFile.writeAsBytes(platformFile.bytes!);
-      return XFile(tempFile.path);
+    // Convert PlatformFile to XFile
+    final xFiles = <XFile>[];
+    for (final platformFile in result.files) {
+      if (platformFile.path != null) {
+        xFiles.add(XFile(platformFile.path!));
+      } else if (platformFile.bytes != null) {
+        // If path is null but bytes are available, create a temporary file
+        final tempDir = Directory.systemTemp;
+        final tempFile = File(join(
+          tempDir.path,
+          'temp_${DateTime.now().millisecondsSinceEpoch}_${platformFile.name}',
+        ));
+        await tempFile.writeAsBytes(platformFile.bytes!);
+        xFiles.add(XFile(tempFile.path));
+      }
     }
 
-    return null;
+    return xFiles;
   }
 
-  /// 录制视频
+  /// Record video using camera (not supported on macOS)
   Future<XFile?> recordVideo() async {
+    // Camera is not supported on macOS
+    if (Platform.isMacOS) {
+      return null;
+    }
+    
     final video = await _picker.pickVideo(
       source: ImageSource.camera,
       maxDuration: const Duration(minutes: 5),
@@ -200,7 +232,27 @@ class MediaService {
     return assets;
   }
 
-  /// 处理并保存视频，返回 Asset
+  /// Process and save multiple videos, return list of Asset
+  Future<List<Asset>> processAndSaveVideos({
+    required List<XFile> videos,
+    required String entryId,
+    int startIndex = 0,
+  }) async {
+    final assets = <Asset>[];
+    for (int i = 0; i < videos.length; i++) {
+      final asset = await processAndSaveVideo(
+        video: videos[i],
+        entryId: entryId,
+        sortOrder: startIndex + i,
+      );
+      if (asset != null) {
+        assets.add(asset);
+      }
+    }
+    return assets;
+  }
+
+  /// Process and save single video, return Asset
   Future<Asset?> processAndSaveVideo({
     required XFile video,
     required String entryId,

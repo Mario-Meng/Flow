@@ -110,12 +110,12 @@ class _EntryEditPageState extends State<EntryEditPage> {
     }
   }
 
-  /// Pick video
-  Future<void> _pickVideo() async {
-    final video = await _mediaService.pickVideo();
-    if (video != null) {
+  /// Pick videos (support multiple on macOS)
+  Future<void> _pickVideos() async {
+    final videos = await _mediaService.pickMultipleVideos();
+    if (videos.isNotEmpty) {
       setState(() {
-        _selectedVideos.add(video);
+        _selectedVideos.addAll(videos);
       });
     }
   }
@@ -153,6 +153,8 @@ class _EntryEditPageState extends State<EntryEditPage> {
 
   /// Show add media options
   void _showMediaOptions() {
+    final isMacOS = Platform.isMacOS;
+    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -180,37 +182,41 @@ class _EntryEditPageState extends State<EntryEditPage> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('从相册选择图片'),
+              title: Text(isMacOS ? '选择图片' : '从相册选择图片'),
               onTap: () {
                 Navigator.pop(context);
                 _pickImages();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('拍照'),
-              onTap: () {
-                Navigator.pop(context);
-                _takePhoto();
-              },
-            ),
+            // Only show camera option on mobile platforms
+            if (!isMacOS)
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('拍照'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takePhoto();
+                },
+              ),
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.video_library_outlined),
-              title: const Text('从相册选择视频'),
+              title: Text(isMacOS ? '选择视频' : '从相册选择视频'),
               onTap: () {
                 Navigator.pop(context);
-                _pickVideo();
+                _pickVideos();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.videocam_outlined),
-              title: const Text('录制视频'),
-              onTap: () {
-                Navigator.pop(context);
-                _recordVideo();
-              },
-            ),
+            // Only show video recording option on mobile platforms
+            if (!isMacOS)
+              ListTile(
+                leading: const Icon(Icons.videocam_outlined),
+                title: const Text('录制视频'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _recordVideo();
+                },
+              ),
             const SizedBox(height: 8),
           ],
         ),
@@ -242,16 +248,14 @@ class _EntryEditPageState extends State<EntryEditPage> {
       }
 
       // Process newly selected videos
-      for (final video in _selectedVideos) {
-        final videoAsset = await _mediaService.processAndSaveVideo(
-          video: video,
+      if (_selectedVideos.isNotEmpty) {
+        final videoAssets = await _mediaService.processAndSaveVideos(
+          videos: _selectedVideos,
           entryId: entryId,
-          sortOrder: sortOrder,
+          startIndex: sortOrder,
         );
-        if (videoAsset != null) {
-          newAssets.add(videoAsset);
-          sortOrder++;
-        }
+        newAssets.addAll(videoAssets);
+        sortOrder += videoAssets.length;
       }
 
       // Merge existing and new assets
