@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:video_player/video_player.dart';
@@ -24,12 +25,48 @@ class MediaService {
 
   /// 从相册选择多张图片
   Future<List<XFile>> pickMultipleImages() async {
-    final images = await _picker.pickMultiImage(
-      imageQuality: 85,
-      maxWidth: 1920,
-      maxHeight: 1920,
+    // On macOS, use file picker instead of image picker
+    if (Platform.isMacOS) {
+      return await _pickImagesFromFileSystem();
+    } else {
+      final images = await _picker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+      return images;
+    }
+  }
+
+  /// Pick images from file system (for macOS)
+  Future<List<XFile>> _pickImagesFromFileSystem() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
     );
-    return images;
+
+    if (result == null || result.files.isEmpty) {
+      return [];
+    }
+
+    // Convert PlatformFile to XFile
+    final xFiles = <XFile>[];
+    for (final platformFile in result.files) {
+      if (platformFile.path != null) {
+        xFiles.add(XFile(platformFile.path!));
+      } else if (platformFile.bytes != null) {
+        // If path is null but bytes are available, create a temporary file
+        final tempDir = Directory.systemTemp;
+        final tempFile = File(join(
+          tempDir.path,
+          'temp_${DateTime.now().millisecondsSinceEpoch}_${platformFile.name}',
+        ));
+        await tempFile.writeAsBytes(platformFile.bytes!);
+        xFiles.add(XFile(tempFile.path));
+      }
+    }
+
+    return xFiles;
   }
 
   /// 拍照
@@ -45,11 +82,44 @@ class MediaService {
 
   /// 从相册选择视频
   Future<XFile?> pickVideo() async {
-    final video = await _picker.pickVideo(
-      source: ImageSource.gallery,
-      maxDuration: const Duration(minutes: 10),
+    // On macOS, use file picker instead of image picker
+    if (Platform.isMacOS) {
+      return await _pickVideoFromFileSystem();
+    } else {
+      final video = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 10),
+      );
+      return video;
+    }
+  }
+
+  /// Pick video from file system (for macOS)
+  Future<XFile?> _pickVideoFromFileSystem() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowMultiple: false,
     );
-    return video;
+
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+
+    final platformFile = result.files.first;
+    if (platformFile.path != null) {
+      return XFile(platformFile.path!);
+    } else if (platformFile.bytes != null) {
+      // If path is null but bytes are available, create a temporary file
+      final tempDir = Directory.systemTemp;
+      final tempFile = File(join(
+        tempDir.path,
+        'temp_${DateTime.now().millisecondsSinceEpoch}_${platformFile.name}',
+      ));
+      await tempFile.writeAsBytes(platformFile.bytes!);
+      return XFile(tempFile.path);
+    }
+
+    return null;
   }
 
   /// 录制视频
