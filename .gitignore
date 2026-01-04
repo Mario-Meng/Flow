@@ -53,3 +53,6 @@ lib/config.dart
 # 测试文件（不提交）
 test_cdc_sync.dart
 test_*.dart
+
+# Native libraries (copied from packages, not committed)
+lib/native/
